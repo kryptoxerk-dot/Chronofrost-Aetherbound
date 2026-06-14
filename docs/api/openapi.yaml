@@ -1,0 +1,274 @@
+openapi: 3.0.3
+info:
+  title: Chronofrost Aetherbound API
+  version: 0.2.0-agent-phase
+  description: >
+    Browser RPG + optional Solana cosmetic purchases + server-authoritative PvP.
+    PvP prizes are studio-funded only. This contract exists to make coding-agent
+    client/server work less ambiguous.
+servers:
+  - url: http://localhost:8787
+security:
+  - SessionToken: []
+components:
+  securitySchemes:
+    SessionToken:
+      type: apiKey
+      in: header
+      name: authorization
+      description: Bearer session token returned by SIWS auth verify.
+    AdminToken:
+      type: apiKey
+      in: header
+      name: x-admin-token
+  schemas:
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
+    PvpAction:
+      type: string
+      enum: [attack, freeze, defend]
+    QueueResult:
+      oneOf:
+        - type: object
+          required: [status, playerId]
+          properties:
+            status: { type: string, enum: [queued] }
+            playerId: { type: string }
+        - type: object
+          required: [status, match]
+          properties:
+            status: { type: string, enum: [matched] }
+            match: { $ref: '#/components/schemas/PublicMatchState' }
+    PublicMatchState:
+      type: object
+      required: [matchId, status, viewerId, currentTurnPlayerId, yourTurn, winnerId]
+      properties:
+        matchId: { type: string, format: uuid }
+        status: { type: string, enum: [active, complete] }
+        viewerId: { type: string }
+        currentTurnPlayerId:
+          type: string
+          nullable: true
+        yourTurn: { type: boolean }
+        turnDeadlineAt:
+          type: string
+          nullable: true
+        winnerId:
+          type: string
+          nullable: true
+    EligibilityEvaluation:
+      type: object
+      properties:
+        playerId: { type: string }
+        status:
+          type: string
+          enum: [eligible, ineligible, flagged_review, banned, admin_excluded]
+        eligible: { type: boolean }
+        reasons:
+          type: array
+          items: { type: string }
+        warnings:
+          type: array
+          items: { type: string }
+    PayoutApprovalRequest:
+      type: object
+      properties:
+        requestId: { type: string, format: uuid }
+        seasonId: { type: string }
+        status:
+          type: string
+          enum: [pending_review, approved, rejected, cancelled]
+        createdBy: { type: string }
+        approvedBy: { type: string }
+        executionTxSignature: { type: string }
+paths:
+  /health:
+    get:
+      security: []
+      responses:
+        '200': { description: OK }
+  /pvp/queue:
+    post:
+      summary: Join ranked PvP queue.
+      description: Player identity comes from SIWS session. Client cannot choose p1/p2.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string, maxLength: 40 }
+      responses:
+        '200':
+          description: Queued or matched.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/QueueResult' }
+        '401': { description: Missing session }
+        '429': { description: Rate limited }
+  /pvp/me/active-match:
+    get:
+      responses:
+        '200': { description: Active match or none }
+  /pvp/me/eligibility:
+    get:
+      responses:
+        '200':
+          description: Player prize eligibility evaluation.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EligibilityEvaluation' }
+  /pvp/matches/{matchId}/state:
+    get:
+      parameters:
+        - in: path
+          name: matchId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Participant-visible match state.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PublicMatchState' }
+        '404': { description: Match not found or not participant }
+  /pvp/matches/{matchId}/action:
+    post:
+      parameters:
+        - in: path
+          name: matchId
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action: { $ref: '#/components/schemas/PvpAction' }
+      responses:
+        '200': { description: Updated match state }
+        '403': { description: Not a match participant }
+        '409': { description: Wrong turn or complete match }
+        '429': { description: Rate limited }
+  /pvp/matches/{matchId}/forfeit:
+    post:
+      parameters:
+        - in: path
+          name: matchId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Forfeit recorded }
+  /pvp/matches/{matchId}/claim-timeout:
+    post:
+      parameters:
+        - in: path
+          name: matchId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Timeout claim recorded }
+  /pvp/leaderboard:
+    get:
+      security: []
+      parameters:
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100 }
+      responses:
+        '200': { description: Ranked ladder }
+  /admin/pvp/season/{seasonId}/snapshot:
+    post:
+      security: [{ AdminToken: [] }]
+      parameters:
+        - in: path
+          name: seasonId
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Season snapshot }
+        '401': { description: Missing admin token }
+  /admin/pvp/season/{seasonId}/payout-approval-request:
+    post:
+      security: [{ AdminToken: [] }]
+      parameters:
+        - in: path
+          name: seasonId
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Pending payout approval request.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PayoutApprovalRequest' }
+  /admin/pvp/payout-requests:
+    get:
+      security: [{ AdminToken: [] }]
+      responses:
+        '200': { description: Payout approval requests }
+  /admin/pvp/payout-requests/{requestId}/approve:
+    post:
+      security: [{ AdminToken: [] }]
+      parameters:
+        - in: path
+          name: requestId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Request approved }
+  /admin/pvp/payout-requests/{requestId}/reject:
+    post:
+      security: [{ AdminToken: [] }]
+      parameters:
+        - in: path
+          name: requestId
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string }
+      responses:
+        '200': { description: Request rejected }
+  /admin/pvp/payout-requests/{requestId}/preflight:
+    get:
+      security: [{ AdminToken: [] }]
+      parameters:
+        - in: path
+          name: requestId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200': { description: Treasury preflight result }
+  /admin/pvp/payout-requests/{requestId}/record-execution:
+    post:
+      security: [{ AdminToken: [] }]
+      parameters:
+        - in: path
+          name: requestId
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [txSignature]
+              properties:
+                txSignature: { type: string }
+      responses:
+        '200': { description: Execution signature recorded }
