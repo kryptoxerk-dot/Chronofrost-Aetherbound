@@ -18,11 +18,13 @@ Immediate tail of Task 001: make the Postgres adapter the live backend under `PV
 
 Implemented via `pgClient.ts` (Pool→SqlClient adapter), `pvpStorage.ts` (composition root + lifecycle), `index.ts` wiring, and `scripts/migrate-pvp.mjs`. See `VERIFICATION_REPORT_WIRE_POSTGRES.md`. Remaining: incrementally route services through `getPvpStorage()`.
 
-## Task 002 — Durable Payout Approval Workflow
+## Task 002 — Durable Payout Approval Workflow — ✅ DONE (2026-06-15)
 
 File: `.codex/tasks/002-payout-approval-durable.md`
 
 Persist payout approval requests and status transitions. Do not execute treasury transfers in this task.
+
+Implemented via async `PayoutApprovalRepository` (memory + `adapters/postgresPayoutApproval.ts` over `pvp_payout_plans`), wired through `pvpStorage.getPayoutApprovals()` and the admin routes. Atomic status transitions; double-execution blocked by status guard + UNIQUE tx signature. See `VERIFICATION_REPORT_PAYOUT_APPROVAL_DURABLE.md`.
 
 ## Task 003 — Client PvP UI
 

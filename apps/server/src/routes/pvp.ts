@@ -5,7 +5,7 @@ import { getPvpEligibilityRules, getPvpRateLimitConfig, getPvpSeasonConfig, requ
 import { buildPrivacySafeIdentityObservation, eligibility, type FlagSeverity } from '../pvp/eligibility.js';
 import { ladder } from '../pvp/ladder.js';
 import { matchmaking } from '../pvp/matchmaking.js';
-import { payoutApprovals } from '../pvp/payoutApproval.js';
+import { getPayoutApprovals } from '../pvp/pvpStorage.js';
 import { validateTreasuryPayoutPreflight } from '../pvp/treasuryPayoutPreflight.js';
 import { createFixedWindowRateLimiter, rateLimitKey, type FixedWindowRateLimiter, type RateLimitResult } from '../security/rateLimit.js';
 
@@ -342,7 +342,7 @@ export async function pvpRoutes(app: FastifyInstance) {
 
     try {
       const plan = payoutPlanForSeason(params.data.seasonId);
-      return payoutApprovals.create(plan, adminActor(request));
+      return await getPayoutApprovals().create(plan, adminActor(request));
     } catch (err) {
       return routeError(reply, err);
     }
@@ -351,14 +351,14 @@ export async function pvpRoutes(app: FastifyInstance) {
   app.get('/admin/pvp/payout-requests', async (request, reply) => {
     if (!requireAdmin(request, reply)) return;
     const q = z.object({ seasonId: z.string().min(1).max(80).optional() }).safeParse(request.query);
-    return payoutApprovals.list(q.success ? q.data.seasonId : undefined);
+    return await getPayoutApprovals().list(q.success ? q.data.seasonId : undefined);
   });
 
   app.get('/admin/pvp/payout-requests/:requestId', async (request, reply) => {
     if (!requireAdmin(request, reply)) return;
     const params = PayoutRequestParams.safeParse(request.params);
     if (!params.success) return reply.code(400).send({ error: 'invalid requestId' });
-    const found = payoutApprovals.get(params.data.requestId);
+    const found = await getPayoutApprovals().get(params.data.requestId);
     if (!found) return reply.code(404).send({ error: 'payout request not found' });
     return found;
   });
@@ -368,7 +368,7 @@ export async function pvpRoutes(app: FastifyInstance) {
     const params = PayoutRequestParams.safeParse(request.params);
     if (!params.success) return reply.code(400).send({ error: 'invalid requestId' });
     try {
-      return payoutApprovals.approve(params.data.requestId, adminActor(request));
+      return await getPayoutApprovals().approve(params.data.requestId, adminActor(request));
     } catch (err) {
       return routeError(reply, err);
     }
@@ -381,7 +381,7 @@ export async function pvpRoutes(app: FastifyInstance) {
     const body = RejectPayoutBody.safeParse(request.body);
     if (!body.success) return reply.code(400).send({ error: 'invalid body' });
     try {
-      return payoutApprovals.reject(params.data.requestId, adminActor(request), body.data.reason);
+      return await getPayoutApprovals().reject(params.data.requestId, adminActor(request), body.data.reason);
     } catch (err) {
       return routeError(reply, err);
     }
@@ -394,7 +394,7 @@ export async function pvpRoutes(app: FastifyInstance) {
     const body = CancelPayoutBody.safeParse(request.body);
     if (!body.success) return reply.code(400).send({ error: 'invalid body' });
     try {
-      return payoutApprovals.cancel(params.data.requestId, adminActor(request), body.data.reason);
+      return await getPayoutApprovals().cancel(params.data.requestId, adminActor(request), body.data.reason);
     } catch (err) {
       return routeError(reply, err);
     }
@@ -404,7 +404,7 @@ export async function pvpRoutes(app: FastifyInstance) {
     if (!requireAdmin(request, reply)) return;
     const params = PayoutRequestParams.safeParse(request.params);
     if (!params.success) return reply.code(400).send({ error: 'invalid requestId' });
-    const found = payoutApprovals.get(params.data.requestId);
+    const found = await getPayoutApprovals().get(params.data.requestId);
     if (!found) return reply.code(404).send({ error: 'payout request not found' });
     try {
       return validateTreasuryPayoutPreflight(found);
@@ -420,10 +420,10 @@ export async function pvpRoutes(app: FastifyInstance) {
     const body = RecordExecutionBody.safeParse(request.body);
     if (!body.success) return reply.code(400).send({ error: 'invalid body' });
     try {
-      const found = payoutApprovals.get(params.data.requestId);
+      const found = await getPayoutApprovals().get(params.data.requestId);
       if (!found) return reply.code(404).send({ error: 'payout request not found' });
       validateTreasuryPayoutPreflight(found);
-      return payoutApprovals.attachExecutionSignature(params.data.requestId, body.data.txSignature, adminActor(request));
+      return await getPayoutApprovals().attachExecutionSignature(params.data.requestId, body.data.txSignature, adminActor(request));
     } catch (err) {
       return routeError(reply, err);
     }

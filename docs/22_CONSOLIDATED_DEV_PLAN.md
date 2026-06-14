@@ -81,3 +81,7 @@ no player-funded / wagering / staking path introduced
   `pvpStorage.ts` composition root, `index.ts` lifecycle, `scripts/migrate-pvp.mjs`.
   See `VERIFICATION_REPORT_WIRE_POSTGRES.md`. Remaining A1 tail: route services
   through `getPvpStorage()` incrementally.
+- 2026-06-15 — Task 002 (durable payout approval) complete: async
+  `PayoutApprovalRepository` (memory + postgres over `pvp_payout_plans`), wired
+  via `pvpStorage.getPayoutApprovals()` and admin routes. See
+  `VERIFICATION_REPORT_PAYOUT_APPROVAL_DURABLE.md`. Next: Task 003 (client PvP UI).

@@ -16,23 +16,30 @@ const plan: PayoutPlan = {
 describe('payout approval workflow', () => {
   beforeEach(() => payoutApprovals._reset());
 
-  it('creates pending requests and approves them before execution', () => {
-    const request = payoutApprovals.create(plan, 'ops-a');
+  it('creates pending requests and approves them before execution', async () => {
+    const request = await payoutApprovals.create(plan, 'ops-a');
     expect(request.status).toBe('pending_review');
 
-    const approved = payoutApprovals.approve(request.requestId, 'ops-b');
+    const approved = await payoutApprovals.approve(request.requestId, 'ops-b');
     expect(approved.status).toBe('approved');
     expect(approved.approvedBy).toBe('ops-b');
 
-    const executed = payoutApprovals.attachExecutionSignature(request.requestId, 'tx-test', 'ops-c');
+    const executed = await payoutApprovals.attachExecutionSignature(request.requestId, 'tx-test', 'ops-c');
     expect(executed.executionTxSignature).toBe('tx-test');
   });
 
-  it('does not allow rejected requests to be approved or executed', () => {
-    const request = payoutApprovals.create(plan, 'ops-a');
-    const rejected = payoutApprovals.reject(request.requestId, 'ops-b', 'collusion review');
+  it('does not allow rejected requests to be approved or executed', async () => {
+    const request = await payoutApprovals.create(plan, 'ops-a');
+    const rejected = await payoutApprovals.reject(request.requestId, 'ops-b', 'collusion review');
     expect(rejected.status).toBe('rejected');
-    expect(() => payoutApprovals.approve(request.requestId, 'ops-c')).toThrow('payout request is rejected');
-    expect(() => payoutApprovals.attachExecutionSignature(request.requestId, 'tx-test', 'ops-c')).toThrow('must be approved');
+    await expect(payoutApprovals.approve(request.requestId, 'ops-c')).rejects.toThrow('payout request is rejected');
+    await expect(payoutApprovals.attachExecutionSignature(request.requestId, 'tx-test', 'ops-c')).rejects.toThrow('must be approved');
+  });
+
+  it('blocks double execution on an approved request', async () => {
+    const request = await payoutApprovals.create(plan, 'ops-a');
+    await payoutApprovals.approve(request.requestId, 'ops-b');
+    await payoutApprovals.attachExecutionSignature(request.requestId, 'tx-1', 'ops-c');
+    await expect(payoutApprovals.attachExecutionSignature(request.requestId, 'tx-2', 'ops-c')).rejects.toThrow('already has execution signature');
   });
 });
