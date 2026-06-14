@@ -17,6 +17,9 @@ const EnvSchema = z.object({
   TREASURY_TOKEN_ACCOUNT: z.string().default(''),
   SESSION_SECRET: z.string().default('dev-only-change-me'),
 
+  // Postgres connection string. Required only when PVP_STORAGE_ADAPTER=postgres.
+  DATABASE_URL: z.string().default(''),
+
   // PvP season prize planning. These values are server/admin controlled; public
   // callers must never be allowed to submit prizePoolRaw or distribution.
   PVP_ADMIN_TOKEN: z.string().default(''),

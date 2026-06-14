@@ -10,11 +10,13 @@ Implement durable PvP repositories behind the existing repository interfaces. Th
 
 Implemented in `apps/server/src/pvp/adapters/postgresRepositories.ts` (+ factory wiring, `pvp_eligibility_evaluations` table, 9 adapter tests). See `VERIFICATION_REPORT_POSTGRES_REPOSITORIES.md`. Next: Task 002.
 
-## Task 004 — Wire Postgres Into the Running Server
+## Task 004 — Wire Postgres Into the Running Server — ✅ DONE (2026-06-15)
 
 File: `.codex/tasks/004-wire-postgres-into-server.md`
 
-Immediate tail of Task 001: make the Postgres adapter the live backend under `PVP_STORAGE_ADAPTER=postgres` (add `pg`, `DATABASE_URL`, migration path, incremental service injection). Recommended next step.
+Immediate tail of Task 001: make the Postgres adapter the live backend under `PVP_STORAGE_ADAPTER=postgres` (add `pg`, `DATABASE_URL`, migration path, incremental service injection).
+
+Implemented via `pgClient.ts` (Pool→SqlClient adapter), `pvpStorage.ts` (composition root + lifecycle), `index.ts` wiring, and `scripts/migrate-pvp.mjs`. See `VERIFICATION_REPORT_WIRE_POSTGRES.md`. Remaining: incrementally route services through `getPvpStorage()`.
 
 ## Task 002 — Durable Payout Approval Workflow
 

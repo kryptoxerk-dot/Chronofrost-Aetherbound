@@ -12,6 +12,7 @@
     "test": "pnpm -r test",
     "verify": "pnpm typecheck && pnpm test && pnpm build",
     "ci": "pnpm verify",
+    "migrate:pvp": "node scripts/migrate-pvp.mjs",
     "agent:context": "node scripts/agent-context-pack.mjs",
     "agent:preflight": "node scripts/agent-preflight.mjs",
     "architecture:guard": "node scripts/architecture-guard.mjs",

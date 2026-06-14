@@ -77,3 +77,7 @@ no player-funded / wagering / staking path introduced
 ## Progress log
 - 2026-06-15 — Task 001 (Postgres PvP repositories) complete. See
   `VERIFICATION_REPORT_POSTGRES_REPOSITORIES.md`.
+- 2026-06-15 — Task 004 (wire Postgres into server) complete: `pgClient.ts`,
+  `pvpStorage.ts` composition root, `index.ts` lifecycle, `scripts/migrate-pvp.mjs`.
+  See `VERIFICATION_REPORT_WIRE_POSTGRES.md`. Remaining A1 tail: route services
+  through `getPvpStorage()` incrementally.
