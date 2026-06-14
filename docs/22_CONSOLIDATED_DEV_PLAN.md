@@ -84,4 +84,14 @@ no player-funded / wagering / staking path introduced
 - 2026-06-15 — Task 002 (durable payout approval) complete: async
   `PayoutApprovalRepository` (memory + postgres over `pvp_payout_plans`), wired
   via `pvpStorage.getPayoutApprovals()` and admin routes. See
-  `VERIFICATION_REPORT_PAYOUT_APPROVAL_DURABLE.md`. Next: Task 003 (client PvP UI).
+  `VERIFICATION_REPORT_PAYOUT_APPROVAL_DURABLE.md`.
+- 2026-06-15 — Task 003 (client PvP UI) complete: Aether Arena scene
+  (`scenes/PvpScene.ts`) + `services/pvpApi.ts` / `pvpSession.ts` / `pvpView.ts`,
+  town ARENA entry. Queue, active match, turn timer, eligibility, leaderboard;
+  wallet optional until ranked actions. See `VERIFICATION_REPORT_CLIENT_PVP_UI.md`.
+
+## Status: codex Tasks 001–004 + 002 + 003 all complete
+
+The active PvP durability track (Lane A1–A3) is done. Remaining lanes: A1 tail
+(route remaining PvP services through `getPvpStorage()`), A4 (treasury executor,
+gated), Lane B (demo + deploy), Lane C (SIWS rate-limiting, ongoing).

@@ -51,6 +51,10 @@ export class TownScene extends Phaser.Scene {
       this.scene.start(SceneKeys.Shop);
     });
 
+    this.buildStructure(160, 210, 'ARENA', COLORS.mid, () => {
+      this.scene.start(SceneKeys.Pvp);
+    });
+
     // The quest-giver NPC.
     this.buildNpc(60, 70);
 

@@ -7,6 +7,7 @@ import { DungeonScene } from './scenes/DungeonScene';
 import { BattleScene } from './scenes/BattleScene';
 import { ShopScene } from './scenes/ShopScene';
 import { HudScene } from './scenes/HudScene';
+import { PvpScene } from './scenes/PvpScene';
 
 // Solana web3 / spl-token rely on a Node-style Buffer global in the browser.
 const globalScope = globalThis as unknown as { Buffer?: typeof Buffer };
@@ -24,5 +25,5 @@ new Phaser.Game({
     default: 'arcade',
     arcade: { gravity: { x: 0, y: 0 }, debug: false },
   },
-  scene: [BootScene, TownScene, DungeonScene, BattleScene, ShopScene, HudScene],
+  scene: [BootScene, TownScene, DungeonScene, BattleScene, ShopScene, HudScene, PvpScene],
 });

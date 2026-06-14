@@ -26,11 +26,13 @@ Persist payout approval requests and status transitions. Do not execute treasury
 
 Implemented via async `PayoutApprovalRepository` (memory + `adapters/postgresPayoutApproval.ts` over `pvp_payout_plans`), wired through `pvpStorage.getPayoutApprovals()` and the admin routes. Atomic status transitions; double-execution blocked by status guard + UNIQUE tx signature. See `VERIFICATION_REPORT_PAYOUT_APPROVAL_DURABLE.md`.
 
-## Task 003 — Client PvP UI
+## Task 003 — Client PvP UI — ✅ DONE (2026-06-15)
 
 File: `.codex/tasks/003-client-pvp-ui.md`
 
 Build the browser UI for queueing, active match state, actions, eligibility, and leaderboard. Do not add betting/staking/prize-claim UI.
+
+Implemented: `services/pvpApi.ts` (rebuilt), `pvpSession.ts` (SIWS), `pvpView.ts` (pure helpers), `scenes/PvpScene.ts` (Aether Arena: menu/queue/match/result/leaderboard/eligibility, turn timer, turn-gated actions), town ARENA entry + scene registration. 11 new tests. See `VERIFICATION_REPORT_CLIENT_PVP_UI.md`.
 
 ## Suggested later tasks
 
