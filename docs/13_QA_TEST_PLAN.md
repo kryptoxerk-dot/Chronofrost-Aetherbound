@@ -15,6 +15,7 @@ Clear dungeon
 Return to town
 Open shop
 Buy gold cosmetic
+Confirm shop says cosmetics only and wallet optional
 Refresh page
 Check inventory persists
 ```
@@ -31,6 +32,8 @@ Sign transfer on devnet
 Confirm purchase
 See item in inventory
 Duplicate confirm rejected
+Confirm the displayed network is devnet or mainnet as configured
+Disable purchases and confirm Gold shop/catalog still work while $AETHER quote returns paused copy
 ```
 
 ## Automated local verification

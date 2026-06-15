@@ -1,10 +1,11 @@
 import Phaser from 'phaser';
-import { GAME, COLORS } from '../config/gameConfig';
+import { ENV, GAME, COLORS } from '../config/gameConfig';
 import { addPixelText, addPanel } from '../ui/text';
 import { SHOP_ITEMS } from '../config/balance';
 import { getGameState, spendGold, grantInventory, hasItem } from '../systems/gameState';
 import { loadWallet, loadPurchase } from '../solana/loadSolana';
 import { requestQuote, confirmPurchase } from '../services/api';
+import { clusterLabel, shopErrorMessage, walletStatusLine } from '../services/shopView';
 import { SceneKeys } from './sceneKeys';
 import { createControls, anyJustDown, type Controls } from './controls';
 
@@ -35,7 +36,7 @@ export class ShopScene extends Phaser.Scene {
 
     addPanel(this, 6, 6, GAME.width - 12, GAME.height - 12);
     addPixelText(this, 16, 14, 'COSMETIC SHOP', 10).setColor('#9be7d0');
-    addPixelText(this, 16, 30, 'Cosmetics only — no power for sale.', 8).setColor('#8fb9a3');
+    addPixelText(this, 16, 30, 'Cosmetics only - no power, no rewards, wallet optional.', 8).setColor('#8fb9a3');
 
     SHOP_ITEMS.forEach((_, i) => {
       this.itemTexts.push(addPixelText(this, 20, 52 + i * 28, '', 8));
@@ -60,12 +61,7 @@ export class ShopScene extends Phaser.Scene {
         .setColor(i === this.selected ? '#d6f8b8' : '#8fb9a3');
     });
 
-    const wallet = state.walletAddress;
-    this.walletText.setText(
-      wallet
-        ? `Wallet ${wallet.slice(0, 4)}..${wallet.slice(-4)}  $AETHER ${state.aetherBalanceUi ?? '—'}   Gold ${state.gold}`
-        : `Guest mode — Gold ${state.gold}`,
-    );
+    this.walletText.setText(walletStatusLine(state, ENV.solanaCluster));
   }
 
   private flash(message: string): void {
@@ -115,10 +111,10 @@ export class ShopScene extends Phaser.Scene {
       this.flash('Loading wallet…');
       const { connectPhantom, getAetherBalance } = await loadWallet();
       const wallet = await connectPhantom();
-      this.flash('Wallet connected (devnet).');
+      this.flash(`Wallet connected (${clusterLabel(ENV.solanaCluster)}).`);
       await getAetherBalance(wallet).catch(() => undefined);
     } catch (err) {
-      this.flash(err instanceof Error ? err.message : 'Wallet connect failed.');
+      this.flash(shopErrorMessage(err));
     } finally {
       this.busy = false;
       this.redraw();
@@ -153,7 +149,7 @@ export class ShopScene extends Phaser.Scene {
         this.flash('Purchase not confirmed.');
       }
     } catch (err) {
-      this.flash(err instanceof Error ? err.message : 'Devnet purchase failed.');
+      this.flash(shopErrorMessage(err));
     } finally {
       this.busy = false;
       this.redraw();

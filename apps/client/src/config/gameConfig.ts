@@ -24,6 +24,7 @@ function normalizeBaseUrl(value: string | undefined, fallback: string): string {
 
 export const ENV = {
   apiBaseUrl: normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL, 'http://localhost:8787'),
+  solanaCluster: import.meta.env.VITE_SOLANA_CLUSTER ?? 'devnet',
   solanaRpcUrl: import.meta.env.VITE_SOLANA_RPC_URL ?? 'https://api.devnet.solana.com',
   aetherMint: import.meta.env.VITE_AETHER_MINT ?? '',
   treasuryTokenAccount: import.meta.env.VITE_TREASURY_TOKEN_ACCOUNT ?? '',
