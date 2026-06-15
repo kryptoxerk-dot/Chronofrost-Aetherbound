@@ -1,7 +1,9 @@
 import Phaser from 'phaser';
 import { ENV, GAME, COLORS } from '../config/gameConfig';
-import { addPixelText } from '../ui/text';
+import { addPixelText, addPanel } from '../ui/text';
 import { getGameState, updateGameState } from '../systems/gameState';
+import { HOW_TO_PLAY_LINES, HOW_TO_PLAY_TITLE, shouldShowHowToPlay } from '../services/onboarding';
+import { playSfx } from '../audio/sfx';
 import { SceneKeys } from './sceneKeys';
 import { createControls, anyDown, anyJustDown, type Controls } from './controls';
 
@@ -19,6 +21,8 @@ export class TownScene extends Phaser.Scene {
   private player!: Phaser.GameObjects.Rectangle;
   private prompt!: Phaser.GameObjects.Text;
   private interactables: Interactable[] = [];
+  private onboarding = false;
+  private onboardingEls: Phaser.GameObjects.GameObject[] = [];
 
   constructor() {
     super(SceneKeys.Town);
@@ -63,6 +67,31 @@ export class TownScene extends Phaser.Scene {
     this.player = this.add.rectangle(160, 150, PLAYER_SIZE, PLAYER_SIZE, COLORS.light);
 
     this.prompt = addPixelText(this, 8, GAME.height - 16, '', 8).setColor('#d6f8b8');
+
+    this.onboarding = false;
+    this.onboardingEls = [];
+    if (shouldShowHowToPlay(getGameState())) this.showHowToPlay();
+  }
+
+  private showHowToPlay(): void {
+    this.onboarding = true;
+    const panel = addPanel(this, 16, 26, GAME.width - 32, GAME.height - 60).setDepth(2000);
+    this.onboardingEls.push(panel);
+    this.onboardingEls.push(addPixelText(this, 28, 34, HOW_TO_PLAY_TITLE, 10).setColor('#9be7d0').setDepth(2001));
+    HOW_TO_PLAY_LINES.forEach((line, i) => {
+      this.onboardingEls.push(addPixelText(this, 28, 56 + i * 16, line, 8).setColor('#d6f8b8').setDepth(2001));
+    });
+    this.onboardingEls.push(
+      addPixelText(this, 28, GAME.height - 40, 'Press E / Space to begin', 8).setColor('#8fb9a3').setDepth(2001),
+    );
+  }
+
+  private dismissHowToPlay(): void {
+    for (const el of this.onboardingEls) el.destroy();
+    this.onboardingEls = [];
+    this.onboarding = false;
+    updateGameState({ seenHowToPlay: true });
+    playSfx('select');
   }
 
   private buildStructure(x: number, y: number, label: string, color: number, onInteract: () => void): void {
@@ -107,6 +136,13 @@ export class TownScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number): void {
+    if (this.onboarding) {
+      if (anyJustDown(this.controls.interact) || anyJustDown([this.controls.back])) {
+        this.dismissHowToPlay();
+      }
+      return;
+    }
+
     const speed = (GAME.moveSpeed * delta) / 1000;
     let dx = 0;
     let dy = 0;

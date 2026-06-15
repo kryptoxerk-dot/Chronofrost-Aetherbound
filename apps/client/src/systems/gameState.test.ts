@@ -5,8 +5,10 @@ import {
   grantInventory,
   getGameState,
   healHero,
+  isMuted,
   resetGameState,
   setHeroVitals,
+  toggleMuted,
   updateGameState,
   xpForNextLevel,
 } from './gameState';
@@ -58,5 +60,18 @@ describe('game state (off-chain, wallet-free)', () => {
   it('persists the launch notice acknowledgement flag', () => {
     expect(getGameState().launchNoticeAccepted).toBe(false);
     expect(updateGameState({ launchNoticeAccepted: true }).launchNoticeAccepted).toBe(true);
+  });
+
+  it('defaults to unmuted, having not seen the guide, and toggles mute', () => {
+    const fresh = getGameState();
+    expect(fresh.muted).toBe(false);
+    expect(fresh.seenHowToPlay).toBe(false);
+    expect(isMuted()).toBe(false);
+
+    expect(toggleMuted()).toBe(true);
+    expect(isMuted()).toBe(true);
+    expect(getGameState().muted).toBe(true);
+    expect(toggleMuted()).toBe(false);
+    expect(isMuted()).toBe(false);
   });
 });

@@ -168,3 +168,6 @@ node scripts/agent-context-pack.mjs
   notice, and audit complete. See the corresponding verification reports.
 - 2026-06-15 - Go-live evidence gate added. See
   `VERIFICATION_REPORT_GO_LIVE_EVIDENCE.md`.
+- 2026-06-15 - Audio pass + first-run onboarding complete (procedural SFX, [M]
+  mute toggle, How-to-Play overlay). See
+  `VERIFICATION_REPORT_AUDIO_AND_ONBOARDING.md`.

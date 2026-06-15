@@ -14,6 +14,8 @@ function state(launchNoticeAccepted: boolean): GameState {
     questComplete: false,
     bossDefeated: false,
     launchNoticeAccepted,
+    seenHowToPlay: false,
+    muted: false,
     walletAddress: null,
     aetherBalanceUi: null,
   };

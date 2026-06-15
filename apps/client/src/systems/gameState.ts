@@ -13,6 +13,8 @@ export interface GameState {
   questComplete: boolean;
   bossDefeated: boolean;
   launchNoticeAccepted: boolean;
+  seenHowToPlay: boolean;
+  muted: boolean;
   walletAddress: string | null;
   aetherBalanceUi: string | null;
 }
@@ -36,6 +38,8 @@ function defaultState(): GameState {
     questComplete: false,
     bossDefeated: false,
     launchNoticeAccepted: false,
+    seenHowToPlay: false,
+    muted: false,
     walletAddress: null,
     aetherBalanceUi: null,
   };
@@ -155,4 +159,15 @@ export function setHeroVitals(hp: number, mp: number): GameState {
   state.mp = Math.max(0, Math.floor(mp));
   persist();
   return getGameState();
+}
+
+export function isMuted(): boolean {
+  return state.muted;
+}
+
+/** Flip the audio mute setting and persist it. Returns the new muted value. */
+export function toggleMuted(): boolean {
+  state.muted = !state.muted;
+  persist();
+  return state.muted;
 }

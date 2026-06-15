@@ -6,6 +6,7 @@ import { getGameState, spendGold, grantInventory, hasItem } from '../systems/gam
 import { loadWallet, loadPurchase } from '../solana/loadSolana';
 import { requestQuote, confirmPurchase } from '../services/api';
 import { clusterLabel, shopErrorMessage, walletStatusLine } from '../services/shopView';
+import { playSfx } from '../audio/sfx';
 import { SceneKeys } from './sceneKeys';
 import { createControls, anyJustDown, type Controls } from './controls';
 
@@ -77,9 +78,11 @@ export class ShopScene extends Phaser.Scene {
 
     if (anyJustDown(this.controls.up)) {
       this.selected = (this.selected + SHOP_ITEMS.length - 1) % SHOP_ITEMS.length;
+      playSfx('select');
       this.redraw();
     } else if (anyJustDown(this.controls.down)) {
       this.selected = (this.selected + 1) % SHOP_ITEMS.length;
+      playSfx('select');
       this.redraw();
     } else if (anyJustDown(this.controls.interact)) {
       this.buyWithGold();
@@ -101,6 +104,7 @@ export class ShopScene extends Phaser.Scene {
       return;
     }
     grantInventory(item.id);
+    playSfx('purchase');
     this.flash(`Purchased ${item.name} with Gold.`);
     this.redraw();
   }
@@ -144,6 +148,7 @@ export class ShopScene extends Phaser.Scene {
       const result = await confirmPurchase(quote.orderId, signature);
       if (result.ok) {
         grantInventory(item.id);
+        playSfx('purchase');
         this.flash(`Purchased ${item.name} with $AETHER.`);
       } else {
         this.flash('Purchase not confirmed.');

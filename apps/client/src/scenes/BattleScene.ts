@@ -13,6 +13,7 @@ import {
   type EnemyId,
   type Side,
 } from '../systems/combat';
+import { playSfx } from '../audio/sfx';
 import { SceneKeys } from './sceneKeys';
 import { createControls, anyJustDown, type Controls } from './controls';
 
@@ -94,6 +95,7 @@ export class BattleScene extends Phaser.Scene {
       this.redraw();
       this.time.delayedCall(550, () => {
         enemyAct(this.state);
+        playSfx('hit');
         this.redraw();
         this.time.delayedCall(250, () => this.advance());
       });
@@ -102,6 +104,7 @@ export class BattleScene extends Phaser.Scene {
 
   private enterOver(): void {
     this.phase = 'over';
+    playSfx(this.state.winner === 'hero' ? 'victory' : 'defeat');
     this.redraw();
   }
 
@@ -124,6 +127,7 @@ export class BattleScene extends Phaser.Scene {
     }
     this.phase = 'idle';
     heroAct(this.state, action);
+    playSfx(action);
     this.redraw();
     this.time.delayedCall(250, () => this.advance());
   }
