@@ -1,46 +1,70 @@
-# CHRONOFROST: AETHERBOUND — Fixed Build Package
+# Chronofrost: Aetherbound
 
-**Format:** simple GameBoy-style pixel RPG for PC browsers.  
-**Web3 layer:** Solana wallet connection, devnet `$AETHER` testing, and a guarded Pump.fun launch plan.  
-**Primary correction:** the backend must never pretend it can move player tokens without the player signing. Purchases now use a **quote → player-signed transfer → backend verifies confirmed transaction → idempotent item grant** flow.
+[![CI](https://github.com/kryptoxerk-dot/Chronofrost-Aetherbound/actions/workflows/ci.yml/badge.svg)](https://github.com/kryptoxerk-dot/Chronofrost-Aetherbound/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-9be7d0.svg)](./LICENSE)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6.svg)
+![Solana](https://img.shields.io/badge/Solana-devnet%2Fmainnet-14f195.svg)
 
----
+A free-to-play, GameBoy-style pixel RPG for the browser, with **optional** Solana
+`$AETHER` cosmetic purchases, server-authoritative ranked PvP, and anti-sybil
+eligibility. Guest-first: you can play the whole loop without ever connecting a
+wallet.
 
-## What this package contains
+**Core invariant:** the backend never moves player tokens. Purchases use a
+**quote → player-signed transfer → server verifies the confirmed transaction →
+idempotent item grant** flow. No staking, no betting, no player-funded prize
+pools; any PvP rewards are studio-funded and admin-gated.
 
-| Path | Purpose |
-|---|---|
-| `apps/client/` | Browser game starter built with Vite + Phaser 3 + TypeScript. Uses generated placeholder GameBoy-style shapes so the game can run without paid assets. |
-| `apps/server/` | Fastify backend starter for health, auth nonce, shop quote, shop confirm, and inventory. Uses in-memory storage for prototype; docs include Postgres schema. |
-| `scripts/create-devnet-aether.ts` | Helper script plan for minting a devnet SPL token used as test `$AETHER`. |
-| `docs/` | Fixed PRD, game design document, architecture, 7-day sprint, 30-day plan, Pump.fun launch plan, tokenomics, security, monetization, roadmap, QA, deployment. |
-| `prompts/` | Updated Claude/Codex prompts that include the corrected Web3 purchase flow and scope controls. |
-| `resources/` | Folder structure, DB schema, env vars, launch checklists, asset checklist, balancing config. |
+## Stack
 
----
+- **Client** — Vite + Phaser 3 + TypeScript. Procedural pixel art + procedural
+  audio (no paid assets). Solana modules are lazy-loaded so the guest path stays
+  light.
+- **Server** — Fastify + TypeScript. SIWS auth, shop quote/confirm, ranked PvP,
+  anti-sybil eligibility, durable Postgres storage (in-memory for dev), helmet
+  security headers, and fail-fast production config validation.
+- **Tooling** — pnpm workspaces, Vitest, GitHub Actions CI, architecture guard.
 
-## Fast local start
+## Quick start
 
 ```bash
-cd chronofrost-aetherbound-fixed
+corepack enable
 pnpm install
-pnpm dev
+pnpm dev          # client (Vite) + server (Fastify) together
 ```
 
-Then open the Vite client URL. The backend defaults to `http://localhost:8787`.
+Open the printed Vite URL. The API defaults to `http://localhost:8787`. No wallet
+or database required for local play (PvP/shop fall back to in-memory).
 
-### Game controls
+### Controls
 
 ```text
-Move: WASD or arrow keys
-Interact / confirm: E or Space
-Battle attack: A
-Battle freeze: F
-Battle defend: D
-Back / return: Escape
+Move: WASD / arrow keys      Interact / confirm: E or Space
+Battle: A attack  F Chronofreeze  D defend     Back: Escape
+Sound: M toggles mute
 ```
 
-The browser demo is intentionally simple: the player can walk around town, accept a quest, enter a short dungeon, fight enemies with a Chronofrost time mechanic, earn off-chain gold, and open the shop. Wallet and `$AETHER` are optional.
+Walk Frosthollow town, accept the Elder's quest, clear the Frostglass Cavern
+(Slime → Wraith → Shrine → Golem → Chrono Warden), and open the cosmetic shop.
+
+## Deploy
+
+The fastest path is the included **Render Blueprint** (`render.yaml`): provisions
+Postgres + API + static client and auto-wires the cross-service URLs. A portable
+`apps/server/Dockerfile` covers Railway / Fly.io / Render-Docker. See
+[`docs/14_DEPLOYMENT_RUNBOOK.md`](docs/14_DEPLOYMENT_RUNBOOK.md). In production the
+server refuses to boot with a weak `SESSION_SECRET`.
+
+## Project structure
+
+```text
+apps/client    Vite + Phaser browser game
+apps/server    Fastify API (auth, shop, PvP, eligibility, payout approval)
+packages/shared Shared types
+resources/     SQL schema, env reference, checklists, balance config
+docs/          PRD, design, architecture, deployment, roadmap, launch audit
+scripts/       migrate-pvp, launch-readiness, launch-smoke, agent tooling
+```
 
 ---
 
@@ -167,4 +191,17 @@ prompts/CODEX_PHASE_5_PROMPT.md
 prompts/CLAUDE_PHASE_5_PROMPT.md
 ```
 
-The next recommended coding task is the Postgres PvP persistence adapter. Use the repository contracts in `apps/server/src/pvp/repositories.ts` and the scaffold in `apps/server/src/pvp/adapters/postgresRepositories.ts`.
+## Status
+
+The Postgres PvP persistence adapter, durable payout approval, client PvP UI,
+deployment scaffolding, audio/onboarding, combat balance, enemy variety, funnel
+analytics, and server production hardening are all implemented and tested. See
+[`docs/22_CONSOLIDATED_DEV_PLAN.md`](docs/22_CONSOLIDATED_DEV_PLAN.md) for the
+current plan and the `VERIFICATION_REPORT_*.md` files for per-change evidence.
+Remaining work to declare a real mainnet launch complete is operational
+(deployment, official mint/treasury, legal review, playtest) and is tracked in
+[`docs/24_GO_LIVE_EVIDENCE.md`](docs/24_GO_LIVE_EVIDENCE.md).
+
+## License
+
+[MIT](./LICENSE) — © 2026 Chronofrost: Aetherbound contributors.
