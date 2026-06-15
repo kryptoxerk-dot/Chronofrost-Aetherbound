@@ -1,122 +1,170 @@
-# 22 — Consolidated Step-by-Step Development Plan
+# 22 - Consolidated Step-by-Step Development Plan
 
-Current-state-aware plan as of **2026-06-15**. Reconciles `04_STEP_BY_STEP_DEVELOPMENT_PLAN.md`,
-`11_ROADMAP.md`, `20_NEXT_PHASE_IMPLEMENTATION_BACKLOG.md`, and `.codex/TASK_INDEX.md`
-with what is actually implemented in the working tree.
+Current-state-aware plan as of **2026-06-15**. This reconciles
+`04_STEP_BY_STEP_DEVELOPMENT_PLAN.md`, `11_ROADMAP.md`,
+`20_NEXT_PHASE_IMPLEMENTATION_BACKLOG.md`, and the accepted mainnet prototype
+launch plan with what is actually implemented in the working tree.
 
-## Status snapshot
+## Launch Target
 
-| Area | Status |
-|---|---|
-| Client single-player loop (town, NPC, Chronofrost battle w/ Freeze+MP+crit, dungeon, shop, wallet HUD) | Built (ahead of the codex zip) |
-| Server PvP engine (duel engine, matchmaking, ladder/Elo, eligibility/anti-sybil, season, payout approval) | Built — in-memory |
-| Solana devnet quote→sign→confirm purchase verifier | Built + tested |
-| Rate limiting, SIWS auth scaffold | Built |
-| PvP persistence (Postgres adapter) | **Done (Task 001)** — implemented + tested, not yet wired into routes |
-| PvP browser UI (`pvpApi.ts`, PvP scenes) | Missing in working tree |
-| Durable payout approval, treasury executor | Durable approval built; no executor |
-| Deploy / public demo | Not done |
-| Mainnet cosmetic shop durability | Durable order/inventory repositories added; no backend player-token movement |
-| Mainnet prototype PvP exposure | Hidden by default with `VITE_PVP_ENABLED=false`; no-prize beta opt-in only |
+Target: browser-playable mainnet prototype with optional fixed-price `$AETHER`
+cosmetic purchases.
 
-Two parallel lanes: **A** = PvP ranked durability (active codex track), **B** =
-player-facing demo + deploy. **C** = cross-cutting hardening (continuous).
+Launch scope:
 
----
+- Free guest play with local progression.
+- One town, quest NPC, shop, compact Frostglass Cavern dungeon, and boss loop.
+- Optional wallet connection only for cosmetic/profile purchases.
+- Durable shop order and inventory-grant storage in Postgres for production.
+- PvP hidden by default for the mainnet prototype.
 
-## Lane A — PvP ranked durability (active track)
+Not launch scope:
 
-### A1 — Wire the Postgres adapter into the running server  → `.codex/tasks/004`
-- Add `pg` dependency + `DATABASE_URL` env; build a `Pool`, pass to `createPvpRepositories('postgres', pool)`.
-- Add a migration runner or documented `psql -f resources/pvp_database_schema.sql`.
-- Incrementally route PvP services through the repository bundle; no big-bang route rewrite.
-- **Accept:** ratings / matches / action logs / snapshots survive a server restart.
+- Player staking.
+- Player-funded prize pools.
+- PvP betting or wagering.
+- Token rewards, prize-claim endpoints, NFT minting, or ranked prize payouts.
 
-### A2 — Durable payout approval  → `.codex/tasks/002`
-- Move payout-approval records to Postgres; persist status transitions.
-- Snapshot required before approval; planning ≠ approval ≠ execution; unique tx-signature guard.
-- **No auto-transfer.** **Accept:** approval records durable; double-execution impossible.
+## Current Status Snapshot
 
-### A3 — Client PvP UI  → `.codex/tasks/003` (reconcile first)
-- Restore/recreate `apps/client/src/services/pvpApi.ts` against current server routes.
-- PvP menu → queue → active-match (poll) → turn-timer → eligibility panel → leaderboard.
-- **No** prize-claim / staking / betting UI; wallet optional until ranked actions need auth.
+| Area | Status | Evidence |
+|---|---|---|
+| Client single-player loop | Complete for prototype | Town, NPC, dungeon, battle, HUD, shop scenes |
+| Frostglass Cavern launch content | Complete for prototype | 3 enemy archetypes + Chrono Warden boss |
+| Guest progression persistence | Complete | Local game state tests and dungeon/battle state |
+| Optional wallet shop | Complete in repo | Quote -> player-signed transfer -> server confirm |
+| Mainnet cosmetic shop durability | Complete in repo | Shop repositories, Postgres tables, inventory grants |
+| Shop rollback controls | Complete | `SHOP_PURCHASES_ENABLED`, `/admin/shop/status`, smoke test |
+| SIWS auth rate limits | Complete | Auth route limiter tests and report |
+| PvP durability track | Complete for no-prize beta foundation | Postgres repositories, write-through, payout approval persistence |
+| PvP browser UI | Complete but launch-gated | `VITE_PVP_ENABLED=false` hides Arena by default |
+| Wallet code-splitting | Complete | `solana/loadSolana.ts`, `codeSplitting.test.ts` |
+| Deployment scaffolding | Complete in repo | `render.yaml`, Dockerfile, runbook, smoke/readiness scripts |
+| Go-live external evidence | Tooling complete; evidence pending | `docs/24_GO_LIVE_EVIDENCE.md`, `go-live-evidence-check.mjs` |
 
-### A4 — Treasury executor (gated, after A2)
-- Admin-gated executor signing transfers **only** from studio treasury; verify each payout
-  on-chain; record signatures.
+## Remaining Work To Declare Real Launch Complete
 
----
+The repository is a launch candidate. The real mainnet prototype launch is not
+complete until these external gates are evidenced:
 
-## Lane B — Public playable demo + deploy
+1. Public client and API deployment is live.
+2. `/health` and CORS smoke pass against the live API.
+3. Official `$AETHER` mint, treasury wallet, and treasury token account are
+   pinned in production env and public disclosure.
+4. A tiny mainnet cosmetic purchase dry run is completed with a real
+   wallet-signed transaction.
+5. Durable `shop_orders` and `shop_inventory_grants` rows are inspected for the
+   dry run.
+6. Legal/compliance approval is recorded for launch copy and target
+   jurisdictions.
+7. Five-tester playtest gate passes: 5 opened, 5 reached first battle, 3 cleared
+   dungeon, 0 forced wallet connections.
+8. Rollback process is tested: purchases disabled while guest game stays online.
 
-### B1 — Single-player progression persistence (quest/inventory/save).
-### B2 — Content & balance pass — compact launch dungeon, 3 enemies + 1 boss, balance tuning.
-### B3 — Wallet code-splitting (Phase 5E) — lazy-load Solana modules so the guest
-movement/combat path stays off the ~1.77 MB Solana bundle (build warns on chunk size).
-### B4 — Deploy — client to Vercel/Netlify, server to Railway/Fly/Render; run the
-5-tester playtest checklist from `04`.
-### B5 â€” Mainnet cosmetic shop hardening
-- Use `SHOP_STORAGE_ADAPTER=postgres` for durable orders/inventory grants.
-- Use `SHOP_PURCHASES_ENABLED=false` or `/admin/shop/status` as a rollback switch.
-- Keep `$AETHER` purchases fixed-price cosmetics/profile identity only.
+Use:
 
----
-
-## Lane C — Cross-cutting hardening (continuous)
-- Rate-limit SIWS nonce/verify routes; log repeated 429s (Phase 5B).
-- Optional Redis limiter adapter for multi-instance later.
-- Keep `pnpm verify:agent` + architecture guard green; one verification report per change.
-
----
-
-## Definition of done (every step)
-
-```text
-pnpm verify:agent passes
-architecture guard passes
-new tests cover the changed behavior
-docs/prompts updated
-no player-funded / wagering / staking path introduced
+```bash
+node scripts/go-live-evidence-check.mjs path/to/go_live_evidence.json
 ```
 
-## Progress log
-- 2026-06-15 — Task 001 (Postgres PvP repositories) complete. See
+## Active Lanes
+
+### Lane A - Mainnet Prototype Launch
+
+Status: repo-owned work complete; external evidence pending.
+
+Next operator actions:
+
+1. Deploy from `render.yaml` or equivalent client/API/Postgres hosts.
+2. Run `node scripts/launch-readiness.mjs` with mainnet env.
+3. Run `node scripts/launch-smoke.mjs` after production builds locally.
+4. Fill the go-live evidence file and validate it without placeholder mode.
+
+### Lane B - Post-Launch Patch 1
+
+Status: deferred until after launch evidence.
+
+Priorities:
+
+1. Content polish from playtest feedback.
+2. Onboarding clarity and audio pass.
+3. Bug fixes discovered by the 5-tester gate.
+4. Balance adjustments for Attack, Freeze, and Defend.
+
+### Lane C - Post-Launch Patch 2
+
+Status: planned.
+
+Priorities:
+
+1. Analytics for funnel and dungeon completion.
+2. Better save/account persistence.
+3. Shop admin dashboard for order inspection and inventory repair.
+4. Optional Redis rate-limit adapter for multi-instance production.
+
+### Lane D - Later No-Prize PvP Beta
+
+Status: launch-gated.
+
+PvP can be exposed only as a no-prize beta after operator intent is explicit:
+
+- `VITE_PVP_ENABLED=true`
+- `ALLOW_MAINNET_PVP_BETA=true` for readiness checks
+- `PVP_PRIZE_POOL_RAW=0`
+- No prize claim, staking, wagering, player-funded rewards, or payout endpoints
+
+Future PvP production work:
+
+1. WebSocket/reconnect support.
+2. Abuse logging and monitoring.
+3. Admin-only treasury executor for studio-funded rewards after legal review.
+4. Kill switches and operational monitoring.
+
+## Verification Standard
+
+Every coding pass must update at least one of:
+
+- tests proving changed behavior;
+- docs explaining an intentionally unimplemented or externally gated item;
+- `VERIFICATION_REPORT_*.md` with exact commands and results.
+
+Required checks for substantial repo changes:
+
+```bash
+pnpm agent:preflight
+pnpm architecture:guard
+pnpm verify
+pnpm agent:context
+```
+
+If `pnpm` is unavailable, use the Node fallbacks:
+
+```bash
+node scripts/agent-preflight.mjs
+node scripts/architecture-guard.mjs
+node scripts/agent-context-pack.mjs
+```
+
+## Progress Log
+
+- 2026-06-15 - Postgres PvP repositories complete. See
   `VERIFICATION_REPORT_POSTGRES_REPOSITORIES.md`.
-- 2026-06-15 — Task 004 (wire Postgres into server) complete: `pgClient.ts`,
-  `pvpStorage.ts` composition root, `index.ts` lifecycle, `scripts/migrate-pvp.mjs`.
-  See `VERIFICATION_REPORT_WIRE_POSTGRES.md`. Remaining A1 tail: route services
-  through `getPvpStorage()` incrementally.
-- 2026-06-15 — Task 002 (durable payout approval) complete: async
-  `PayoutApprovalRepository` (memory + postgres over `pvp_payout_plans`), wired
-  via `pvpStorage.getPayoutApprovals()` and admin routes. See
+- 2026-06-15 - Postgres storage wired into the server. See
+  `VERIFICATION_REPORT_WIRE_POSTGRES.md`.
+- 2026-06-15 - Durable payout approval complete. See
   `VERIFICATION_REPORT_PAYOUT_APPROVAL_DURABLE.md`.
-- 2026-06-15 — Task 003 (client PvP UI) complete: Aether Arena scene
-  (`scenes/PvpScene.ts`) + `services/pvpApi.ts` / `pvpSession.ts` / `pvpView.ts`,
-  town ARENA entry. Queue, active match, turn timer, eligibility, leaderboard;
-  wallet optional until ranked actions. See `VERIFICATION_REPORT_CLIENT_PVP_UI.md`.
-
-- 2026-06-15 — A1 tail complete: persist-only `insertMatch`, fire-and-forget
-  write-through on match completion (`pvpPersistence.ts`), ladder rehydration on
-  boot. Ranked ratings/matches survive restart in postgres mode.
-- 2026-06-15 — Lane B (deploy) complete: `render.yaml` blueprint (Postgres + API
-  + static client, auto-wired URLs), server `Dockerfile`, host `PORT` binding,
-  runbook. Production build smoke-tested (`/health` 200). See
-  `VERIFICATION_REPORT_DEPLOY.md`. **Ready to go live.**
-- 2026-06-15 â€” Mainnet prototype launch hardening started: SIWS auth route limits,
-  durable cosmetic shop repository adapters, Postgres shop tables in the existing
-  idempotent migration, and `/admin/shop/status` purchase kill switch.
-- 2026-06-15 â€” Core game content pass: Frostglass Cavern now has a compact
-  launch route with Frost Slime, Clock Wraith, Aether Shrine, Crystal Golem, and
-  Chrono Warden; hero HP/MP persists across dungeon encounters.
-
-- 2026-06-15 - Mainnet prototype PvP exposure gated: Arena is hidden unless
-  `VITE_PVP_ENABLED=true`; readiness blocks mainnet PvP exposure unless explicitly
-  allowed as no-prize beta.
-
-## Status: PvP durability track + deploy READY
-
-Lanes A1–A3, the A1 tail, and Lane B deploy are done. To go live: push to GitHub
-and apply `render.yaml` (or `memory` mode for a no-DB launch). Remaining: A4
-(treasury executor, gated), Lane B polish (content), Lane C (429 logging /
-optional Redis limiter), and launch content polish.
+- 2026-06-15 - Client PvP UI complete and later launch-gated. See
+  `VERIFICATION_REPORT_CLIENT_PVP_UI.md` and
+  `VERIFICATION_REPORT_PVP_LAUNCH_GATING.md`.
+- 2026-06-15 - Deployment scaffolding complete. See
+  `VERIFICATION_REPORT_DEPLOY.md`.
+- 2026-06-15 - Auth rate limits complete. See
+  `VERIFICATION_REPORT_AUTH_RATE_LIMITS.md`.
+- 2026-06-15 - Mainnet cosmetic shop hardening complete. See
+  `VERIFICATION_REPORT_MAINNET_PROTOTYPE_SHOP.md`.
+- 2026-06-15 - Core game content pass complete. See
+  `VERIFICATION_REPORT_CORE_GAME_CONTENT.md`.
+- 2026-06-15 - Launch UI polish, smoke automation, readiness gates, launch
+  notice, and audit complete. See the corresponding verification reports.
+- 2026-06-15 - Go-live evidence gate added. See
+  `VERIFICATION_REPORT_GO_LIVE_EVIDENCE.md`.
