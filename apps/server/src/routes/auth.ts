@@ -6,7 +6,7 @@ import nacl from 'tweetnacl';
 import bs58 from 'bs58';
 import { store } from '../services/inMemoryStore.js';
 import { getAuthRateLimitConfig } from '../config/env.js';
-import { createFixedWindowRateLimiter, rateLimitKey, type FixedWindowRateLimiter, type RateLimitResult } from '../security/rateLimit.js';
+import { createFixedWindowRateLimiter, createRateLimitWarningLogger, rateLimitKey, type FixedWindowRateLimiter, type RateLimitResult } from '../security/rateLimit.js';
 
 const SignatureArray = z.array(z.number().int().min(0).max(255)).length(64);
 const NonceBody = z.object({ wallet: z.string().min(32) });
@@ -17,8 +17,9 @@ const VerifyBody = z.object({
 });
 
 const authRateLimits = getAuthRateLimitConfig();
-const nonceLimiter = createFixedWindowRateLimiter(authRateLimits.nonce);
-const verifyLimiter = createFixedWindowRateLimiter(authRateLimits.verify);
+const rateLimitWarningLogger = createRateLimitWarningLogger();
+const nonceLimiter = createFixedWindowRateLimiter({ ...authRateLimits.nonce, onRepeatedLimit: rateLimitWarningLogger });
+const verifyLimiter = createFixedWindowRateLimiter({ ...authRateLimits.verify, onRepeatedLimit: rateLimitWarningLogger });
 
 function sendRateLimitHeaders(reply: FastifyReply, result: RateLimitResult): void {
   reply.header('x-ratelimit-name', result.name);

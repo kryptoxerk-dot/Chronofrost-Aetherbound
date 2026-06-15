@@ -1,10 +1,10 @@
 # Next Phase Implementation Backlog
 
 Status note as of 2026-06-15: Phases 5A, 5C, 5D, and 5E have been implemented
-for the current prototype scope. Phase 5B auth route limiting is implemented;
-multi-instance Redis limiting and repeated-429 operator logging remain optional
-post-launch hardening. The mainnet prototype is launch-gated by the external
-evidence checklist in `docs/24_GO_LIVE_EVIDENCE.md`.
+for the current prototype scope. Phase 5B auth route limiting and repeated-429
+operator logging are implemented; multi-instance Redis limiting remains
+optional post-launch hardening. The mainnet prototype is launch-gated by the
+external evidence checklist in `docs/24_GO_LIVE_EVIDENCE.md`.
 
 This is the prioritized task plan for Claude/Codex.
 

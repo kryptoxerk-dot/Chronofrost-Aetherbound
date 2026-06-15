@@ -35,7 +35,7 @@ Not launch scope:
 | Optional wallet shop | Complete in repo | Quote -> player-signed transfer -> server confirm |
 | Mainnet cosmetic shop durability | Complete in repo | Shop repositories, Postgres tables, inventory grants |
 | Shop rollback controls | Complete | `SHOP_PURCHASES_ENABLED`, `/admin/shop/status`, smoke test |
-| SIWS auth rate limits | Complete | Auth route limiter tests and report |
+| SIWS auth rate limits | Complete | Auth route limiter tests, repeated-429 logging, and reports |
 | PvP durability track | Complete for no-prize beta foundation | Postgres repositories, write-through, payout approval persistence |
 | PvP browser UI | Complete but launch-gated | `VITE_PVP_ENABLED=false` hides Arena by default |
 | Wallet code-splitting | Complete | `solana/loadSolana.ts`, `codeSplitting.test.ts` |

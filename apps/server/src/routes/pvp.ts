@@ -7,7 +7,7 @@ import { ladder } from '../pvp/ladder.js';
 import { matchmaking } from '../pvp/matchmaking.js';
 import { getPayoutApprovals } from '../pvp/pvpStorage.js';
 import { validateTreasuryPayoutPreflight } from '../pvp/treasuryPayoutPreflight.js';
-import { createFixedWindowRateLimiter, rateLimitKey, type FixedWindowRateLimiter, type RateLimitResult } from '../security/rateLimit.js';
+import { createFixedWindowRateLimiter, createRateLimitWarningLogger, rateLimitKey, type FixedWindowRateLimiter, type RateLimitResult } from '../security/rateLimit.js';
 
 const ActionEnum = z.enum(['attack', 'freeze', 'defend']);
 const NameBody = z.object({ name: z.string().min(1).max(40).optional() }).default({});
@@ -30,9 +30,10 @@ const RecordExecutionBody = z.object({ txSignature: z.string().min(10).max(200) 
 
 
 const pvpRateLimits = getPvpRateLimitConfig();
-const queueLimiter = createFixedWindowRateLimiter(pvpRateLimits.queue);
-const actionLimiter = createFixedWindowRateLimiter(pvpRateLimits.action);
-const adminLimiter = createFixedWindowRateLimiter(pvpRateLimits.admin);
+const rateLimitWarningLogger = createRateLimitWarningLogger();
+const queueLimiter = createFixedWindowRateLimiter({ ...pvpRateLimits.queue, onRepeatedLimit: rateLimitWarningLogger });
+const actionLimiter = createFixedWindowRateLimiter({ ...pvpRateLimits.action, onRepeatedLimit: rateLimitWarningLogger });
+const adminLimiter = createFixedWindowRateLimiter({ ...pvpRateLimits.admin, onRepeatedLimit: rateLimitWarningLogger });
 
 function sendRateLimitHeaders(reply: FastifyReply, result: RateLimitResult): void {
   reply.header('x-ratelimit-name', result.name);
