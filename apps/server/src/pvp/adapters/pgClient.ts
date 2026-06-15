@@ -1,9 +1,26 @@
 import { readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 import pg from 'pg';
 import type { SqlClient } from './postgresRepositories.js';
 
 const { Pool } = pg;
+
+const SCHEMA_RELATIVE = 'resources/pvp_database_schema.sql';
+
+/**
+ * Resolve the PvP schema across layouts: repo root (cwd), and source/dist
+ * relative (apps/server/{src,dist}/pvp/adapters -> repo root). Robust to both
+ * native (cwd = repo root) and container (cwd = /app) deployments.
+ */
+function resolveSchemaPath(): string {
+  const candidates = [
+    path.resolve(process.cwd(), SCHEMA_RELATIVE),
+    fileURLToPath(new URL(`../../../../../${SCHEMA_RELATIVE}`, import.meta.url)),
+  ];
+  return candidates.find((candidate) => existsSync(candidate)) ?? candidates[0];
+}
 
 export interface PgStorageHandle {
   /** Driver-agnostic client passed to createPostgresPvpRepositories. */
@@ -48,8 +65,7 @@ export function createPgSqlClient(connectionString: string): PgStorageHandle {
     client,
     pool,
     async migrate() {
-      const schemaPath = fileURLToPath(new URL('../../../../../resources/pvp_database_schema.sql', import.meta.url));
-      const sql = await readFile(schemaPath, 'utf8');
+      const sql = await readFile(resolveSchemaPath(), 'utf8');
       await pool.query(sql);
     },
     async end() {

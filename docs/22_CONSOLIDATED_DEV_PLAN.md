@@ -90,8 +90,17 @@ no player-funded / wagering / staking path introduced
   town ARENA entry. Queue, active match, turn timer, eligibility, leaderboard;
   wallet optional until ranked actions. See `VERIFICATION_REPORT_CLIENT_PVP_UI.md`.
 
-## Status: codex Tasks 001–004 + 002 + 003 all complete
+- 2026-06-15 — A1 tail complete: persist-only `insertMatch`, fire-and-forget
+  write-through on match completion (`pvpPersistence.ts`), ladder rehydration on
+  boot. Ranked ratings/matches survive restart in postgres mode.
+- 2026-06-15 — Lane B (deploy) complete: `render.yaml` blueprint (Postgres + API
+  + static client, auto-wired URLs), server `Dockerfile`, host `PORT` binding,
+  runbook. Production build smoke-tested (`/health` 200). See
+  `VERIFICATION_REPORT_DEPLOY.md`. **Ready to go live.**
 
-The active PvP durability track (Lane A1–A3) is done. Remaining lanes: A1 tail
-(route remaining PvP services through `getPvpStorage()`), A4 (treasury executor,
-gated), Lane B (demo + deploy), Lane C (SIWS rate-limiting, ongoing).
+## Status: PvP durability track + deploy READY
+
+Lanes A1–A3, the A1 tail, and Lane B deploy are done. To go live: push to GitHub
+and apply `render.yaml` (or `memory` mode for a no-DB launch). Remaining: A4
+(treasury executor, gated), Lane B polish (wallet code-splitting, content), Lane
+C (SIWS rate-limiting).

@@ -1,0 +1,83 @@
+# Render Blueprint — one-shot deploy of Chronofrost: Aetherbound.
+#
+# Provisions a managed Postgres, the Fastify API, and the static client, and
+# auto-wires the cross-service URLs (the client API base + the server CORS
+# origin are derived from each service's host; scheme-less hosts are normalized
+# to https in app code).
+#
+# Go live:
+#   1. Push this repo to GitHub.
+#   2. Render Dashboard -> New -> Blueprint -> pick this repo.
+#   3. Apply. Render builds all three and runs the schema migration.
+#
+# Invariants: no player staking/betting. PvP rewards (if enabled) are
+# studio-funded only and gated behind manual admin approval.
+
+databases:
+  - name: chronofrost-db
+    plan: free
+
+services:
+  # --- API server ---
+  - type: web
+    name: chronofrost-server
+    runtime: node
+    plan: free
+    rootDir: .
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @chronofrost/server build
+    # Apply the (idempotent) schema, then start the API.
+    startCommand: node scripts/migrate-pvp.mjs && node apps/server/dist/index.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PVP_STORAGE_ADAPTER
+        value: postgres
+      - key: DATABASE_URL
+        fromDatabase:
+          name: chronofrost-db
+          property: connectionString
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: PVP_ADMIN_TOKEN
+        generateValue: true
+      - key: PVP_FINGERPRINT_SALT
+        generateValue: true
+      - key: SOLANA_CLUSTER
+        value: devnet
+      - key: SOLANA_RPC_URL
+        value: https://api.devnet.solana.com
+      # Allowed browser origin = the static client's host (normalized to https).
+      - key: CORS_ORIGIN
+        fromService:
+          type: web
+          name: chronofrost-client
+          property: host
+      # Optional Solana shop config — leave unset for a guest + PvP launch.
+      - key: AETHER_MINT
+        sync: false
+      - key: TREASURY_WALLET
+        sync: false
+      - key: TREASURY_TOKEN_ACCOUNT
+        sync: false
+
+  # --- Static client (Vite SPA) ---
+  - type: web
+    name: chronofrost-client
+    runtime: static
+    rootDir: .
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm --filter @chronofrost/client build
+    staticPublishPath: apps/client/dist
+    envVars:
+      # API base = the server's host (app code prepends https://).
+      - key: VITE_API_BASE_URL
+        fromService:
+          type: web
+          name: chronofrost-server
+          property: host
+      - key: VITE_SOLANA_RPC_URL
+        value: https://api.devnet.solana.com
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

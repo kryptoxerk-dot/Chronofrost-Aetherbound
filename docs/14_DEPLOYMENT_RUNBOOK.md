@@ -1,5 +1,53 @@
 # 14 — Deployment Runbook
 
+## Fast go-live (recommended) — Render Blueprint
+
+The repo ships `render.yaml`, a one-shot blueprint that provisions Postgres, the
+API, and the static client and auto-wires the cross-service URLs.
+
+```text
+1. Push this repo to GitHub.
+2. Render Dashboard -> New -> Blueprint -> select the repo -> Apply.
+3. Render builds all three services and runs the schema migration
+   (scripts/migrate-pvp.mjs) on the server's first start.
+```
+
+What auto-wires:
+- `DATABASE_URL` from the managed Postgres.
+- `SESSION_SECRET`, `PVP_ADMIN_TOKEN`, `PVP_FINGERPRINT_SALT` are generated.
+- Client `VITE_API_BASE_URL` = server host; server `CORS_ORIGIN` = client host
+  (scheme-less hosts are normalized to https in app code).
+
+What to set yourself (optional, for the Solana shop): `AETHER_MINT`,
+`TREASURY_WALLET`, `TREASURY_TOKEN_ACCOUNT`. Leave unset for a guest + PvP launch.
+
+Health check: `GET /health` -> `{ "ok": true, "service": "chronofrost-server" }`.
+
+### Alternative — container hosts (Railway / Fly.io / Render-Docker)
+
+`apps/server/Dockerfile` builds and runs the API (build context = repo root):
+
+```bash
+docker build -f apps/server/Dockerfile -t chronofrost-server .
+docker run -e DATABASE_URL=... -e PVP_STORAGE_ADAPTER=postgres -e PORT=8787 -p 8787:8787 chronofrost-server
+```
+
+Run the migration once against the DB before/at first deploy:
+
+```bash
+DATABASE_URL=postgres://... pnpm migrate:pvp
+```
+
+The server binds the host-injected `PORT` (falls back to `SERVER_PORT=8787`).
+Deploy the client (`apps/client/dist`) to any static host (Vercel/Netlify/Render
+static); set `VITE_API_BASE_URL` to the API URL at build time.
+
+### Launch storage modes
+
+- `PVP_STORAGE_ADAPTER=memory` — fastest, no DB. Ranked state resets on restart.
+- `PVP_STORAGE_ADAPTER=postgres` + `DATABASE_URL` — durable; ratings/matches
+  survive restarts (ladder rehydrates from Postgres on boot).
+
 ## Local build
 
 ```bash

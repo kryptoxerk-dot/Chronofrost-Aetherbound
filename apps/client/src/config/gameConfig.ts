@@ -13,8 +13,17 @@ export const COLORS = {
   danger: 0xe07a5f,
 };
 
+// Accept a bare host (e.g. a PaaS service binding) or a full URL. A scheme-less
+// value is assumed https so the deployed client can reach the API without a
+// manual rebuild just to prepend the scheme.
+function normalizeBaseUrl(value: string | undefined, fallback: string): string {
+  const trimmed = value?.trim();
+  if (!trimmed) return fallback;
+  return /^https?:\/\//.test(trimmed) ? trimmed : `https://${trimmed}`;
+}
+
 export const ENV = {
-  apiBaseUrl: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8787',
+  apiBaseUrl: normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL, 'http://localhost:8787'),
   solanaRpcUrl: import.meta.env.VITE_SOLANA_RPC_URL ?? 'https://api.devnet.solana.com',
   aetherMint: import.meta.env.VITE_AETHER_MINT ?? '',
   treasuryTokenAccount: import.meta.env.VITE_TREASURY_TOKEN_ACCOUNT ?? '',

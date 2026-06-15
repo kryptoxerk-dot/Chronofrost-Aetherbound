@@ -9,6 +9,9 @@ const EnvBool = z.preprocess((value: unknown) => {
 const EnvSchema = z.object({
   NODE_ENV: z.string().default('development'),
   SERVER_PORT: z.coerce.number().default(8787),
+  // Many PaaS hosts (Render/Railway/Fly/Heroku) inject the bind port as PORT.
+  // When present it takes precedence over SERVER_PORT (see resolveServerPort).
+  PORT: z.coerce.number().int().positive().optional(),
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
   SOLANA_RPC_URL: z.string().url().default('https://api.devnet.solana.com'),
   SOLANA_CLUSTER: z.string().default('devnet'),
@@ -58,6 +61,21 @@ const EnvSchema = z.object({
 });
 
 export const env = EnvSchema.parse(process.env);
+
+/** Bind port: prefer the host-injected PORT, else SERVER_PORT. */
+export function resolveServerPort(): number {
+  return env.PORT ?? env.SERVER_PORT;
+}
+
+/**
+ * CORS allowed origin. Accepts a bare host (e.g. a PaaS service binding) and
+ * assumes https so cross-service wiring works without a manual scheme.
+ */
+export function resolveCorsOrigin(): string {
+  const value = env.CORS_ORIGIN.trim();
+  if (!value) return 'http://localhost:5173';
+  return /^https?:\/\//.test(value) ? value : `https://${value}`;
+}
 
 export function requireConfiguredSolana() {
   const missing = [

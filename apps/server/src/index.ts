@@ -1,6 +1,6 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
-import { env } from './config/env.js';
+import { env, resolveServerPort, resolveCorsOrigin } from './config/env.js';
 import { healthRoutes } from './routes/health.js';
 import { shopRoutes } from './routes/shop.js';
 import { authRoutes } from './routes/auth.js';
@@ -33,7 +33,7 @@ if (getPgStorageHandle()) {
 }
 
 await app.register(cors, {
-  origin: env.CORS_ORIGIN,
+  origin: resolveCorsOrigin(),
   credentials: true,
 });
 
@@ -53,7 +53,7 @@ for (const signal of ['SIGINT', 'SIGTERM'] as const) {
 }
 
 try {
-  await app.listen({ port: env.SERVER_PORT, host: '0.0.0.0' });
+  await app.listen({ port: resolveServerPort(), host: '0.0.0.0' });
 } catch (err) {
   app.log.error(err);
   process.exit(1);
