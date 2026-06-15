@@ -9,6 +9,24 @@ export const HERO_CONFIG = {
   critChance: 0.08,
 };
 
+// Enemy AI flavor. Behavior is probability-driven and resolved through the
+// shared seeded rng, so the deterministic default rng (no roll passes) always
+// yields a plain attack — keeping headless sims/tests stable while live play
+// (Math.random) gets variety.
+export type EnemySpecial = 'surge' | 'haste';
+
+export interface EnemyBehavior {
+  /** Chance to brace (halve the hero's next hit) instead of attacking. */
+  guardChance: number;
+  /** Chance to use its special instead of a normal attack. */
+  specialChance: number;
+  special?: EnemySpecial;
+  /** 'surge': attack damage multiplier. */
+  surgeMultiplier?: number;
+  /** 'haste': timeline units shaved off its next wait (acts sooner). */
+  hasteAmount?: number;
+}
+
 export const ENEMY_CONFIG = {
   frost_slime: {
     id: 'frost_slime',
@@ -19,6 +37,8 @@ export const ENEMY_CONFIG = {
     speed: 5,
     xp: 5,
     gold: 8,
+    // Tutorial foe: pure attacker.
+    behavior: { guardChance: 0, specialChance: 0 } as EnemyBehavior,
   },
   clock_wraith: {
     id: 'clock_wraith',
@@ -29,6 +49,8 @@ export const ENEMY_CONFIG = {
     speed: 9,
     xp: 7,
     gold: 10,
+    // Fast striker that sometimes blurs forward to act again sooner.
+    behavior: { guardChance: 0, specialChance: 0.3, special: 'haste', hasteAmount: 2 } as EnemyBehavior,
   },
   crystal_golem: {
     id: 'crystal_golem',
@@ -39,6 +61,9 @@ export const ENEMY_CONFIG = {
     speed: 4,
     xp: 12,
     gold: 16,
+    // Defensive wall: often braces, so physical hits are weak — Chronofreeze
+    // (which ignores armor) is the answer.
+    behavior: { guardChance: 0.4, specialChance: 0 } as EnemyBehavior,
   },
   chrono_warden: {
     id: 'chrono_warden',
@@ -49,6 +74,8 @@ export const ENEMY_CONFIG = {
     speed: 6,
     xp: 25,
     gold: 40,
+    // Boss: a heavy Temporal Surge and the occasional guard.
+    behavior: { guardChance: 0.1, specialChance: 0.25, special: 'surge', surgeMultiplier: 1.6 } as EnemyBehavior,
   },
 } as const;
 

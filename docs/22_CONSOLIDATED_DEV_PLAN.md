@@ -174,3 +174,8 @@ node scripts/agent-context-pack.mjs
 - 2026-06-15 - Combat balance pass: Defend reworked into a tempo/resource move
   (halves the next hit AND refuels MP), completing the Attack/Freeze/Defend loop.
   See `VERIFICATION_REPORT_COMBAT_BALANCE.md`.
+- 2026-06-15 - Offline dungeon funnel analytics (persisted counters + console
+  handle). See commit history / `systems/analytics.ts`.
+- 2026-06-15 - Enemy variety: data-driven behaviors (Wraith haste, Golem guard,
+  Warden Temporal Surge) via the seeded combat model; sims stay deterministic.
+  See `VERIFICATION_REPORT_ENEMY_VARIETY.md`.

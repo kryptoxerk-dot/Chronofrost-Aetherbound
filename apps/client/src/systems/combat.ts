@@ -1,4 +1,4 @@
-import { HERO_CONFIG, ENEMY_CONFIG, COMBAT_CONFIG } from '../config/balance';
+import { HERO_CONFIG, ENEMY_CONFIG, COMBAT_CONFIG, type EnemyBehavior } from '../config/balance';
 
 // Pure, framework-free combat model. BattleScene drives it for the interactive
 // game; tests drive it headlessly. No Phaser, DOM, or randomness leaks in here
@@ -22,6 +22,8 @@ export interface Combatant {
   defending: boolean;
   /** Timeline units until this combatant may act again. Lower acts sooner. */
   wait: number;
+  /** Enemy AI flavor; undefined for the hero (player-controlled). */
+  behavior?: EnemyBehavior;
 }
 
 export interface BattleState {
@@ -75,6 +77,7 @@ export function createBattle(enemyId: EnemyId, options: BattleOptions = {}): Bat
     critChance: 0,
     defending: false,
     wait: initialWait(enemyCfg.speed),
+    behavior: { ...enemyCfg.behavior },
   };
 
   return {
@@ -103,8 +106,8 @@ function resetWait(c: Combatant): void {
   c.wait = initialWait(c.speed);
 }
 
-function dealPhysical(state: BattleState, attacker: Combatant, defender: Combatant): number {
-  let damage = Math.max(COMBAT_CONFIG.minHitDamage, attacker.attack - defender.defense);
+function dealPhysical(state: BattleState, attacker: Combatant, defender: Combatant, attackMultiplier = 1): number {
+  let damage = Math.max(COMBAT_CONFIG.minHitDamage, Math.round((attacker.attack - defender.defense) * attackMultiplier));
   if (state.rng() < attacker.critChance) {
     damage = Math.round(damage * 1.5);
     state.log.push(`${attacker.name} lands a critical hit!`);
@@ -162,11 +165,46 @@ export function heroAct(state: BattleState, action: CombatAction): void {
   checkOver(state);
 }
 
-/** Resolve the enemy's action (always a physical attack in the prototype). */
+export type EnemyAction = 'attack' | 'guard' | 'special';
+
+/**
+ * Pick the enemy's action from its behavior using a single rng draw with
+ * cumulative thresholds. With the default deterministic rng (returns 1) every
+ * roll fails, so the enemy always attacks — keeping headless sims stable.
+ */
+export function chooseEnemyAction(state: BattleState): EnemyAction {
+  const b = state.enemy.behavior;
+  if (!b) return 'attack';
+  const roll = state.rng();
+  const specialChance = b.special ? b.specialChance : 0;
+  if (roll < specialChance) return 'special';
+  if (roll < specialChance + b.guardChance) return 'guard';
+  return 'attack';
+}
+
+/** Resolve the enemy's action: a normal attack, a brace (guard), or a special. */
 export function enemyAct(state: BattleState): void {
   if (state.over) return;
-  dealPhysical(state, state.enemy, state.hero);
-  resetWait(state.enemy);
+  const enemy = state.enemy;
+  const action = chooseEnemyAction(state);
+
+  if (action === 'guard') {
+    enemy.defending = true;
+    state.log.push(`${enemy.name} braces behind its guard.`);
+  } else if (action === 'special' && enemy.behavior?.special === 'surge') {
+    state.log.push(`${enemy.name} unleashes a Temporal Surge!`);
+    dealPhysical(state, enemy, state.hero, enemy.behavior.surgeMultiplier ?? 1.5);
+  } else if (action === 'special' && enemy.behavior?.special === 'haste') {
+    dealPhysical(state, enemy, state.hero);
+  } else {
+    dealPhysical(state, enemy, state.hero);
+  }
+
+  resetWait(enemy);
+  if (action === 'special' && enemy.behavior?.special === 'haste') {
+    enemy.wait = Math.max(0, enemy.wait - (enemy.behavior.hasteAmount ?? 0));
+    state.log.push(`${enemy.name} blurs forward through time.`);
+  }
   checkOver(state);
 }
 

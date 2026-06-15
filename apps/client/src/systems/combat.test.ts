@@ -68,4 +68,41 @@ describe('Chronofrost combat', () => {
     const { winner } = simulateBattle('chrono_warden', freezePolicy);
     expect(winner).toBe('hero');
   });
+
+  it('Enemies just attack under the deterministic default rng (sim-stable)', () => {
+    const state = createBattle('chrono_warden'); // default rng never rolls a special/guard
+    const before = state.hero.hp;
+    enemyAct(state);
+    expect(state.enemy.defending).toBe(false); // did not guard
+    expect(before - state.hero.hp).toBe(state.enemy.attack - state.hero.defense); // plain hit
+  });
+
+  it('The Clock Wraith can blur forward to act sooner (haste)', () => {
+    const state = createBattle('clock_wraith', { rng: () => 0.1 }); // below specialChance
+    const baseWait = COMBAT_CONFIG.timelineBase / state.enemy.speed;
+    const before = state.hero.hp;
+    enemyAct(state);
+    expect(state.hero.hp).toBeLessThan(before); // haste still strikes
+    expect(state.enemy.wait).toBeLessThan(baseWait); // and resets faster than normal
+  });
+
+  it('The Crystal Golem braces instead of attacking (guard)', () => {
+    const state = createBattle('crystal_golem', { rng: () => 0.1 }); // within guardChance
+    const before = state.hero.hp;
+    enemyAct(state);
+    expect(state.enemy.defending).toBe(true);
+    expect(state.hero.hp).toBe(before); // a brace deals no damage
+  });
+
+  it('The Chrono Warden Temporal Surge hits harder than a normal blow', () => {
+    const surge = createBattle('chrono_warden', { rng: () => 0.1 }); // triggers special
+    enemyAct(surge);
+    const surgeLoss = surge.hero.maxHp - surge.hero.hp;
+
+    const normal = createBattle('chrono_warden', { rng: () => 0.99 }); // plain attack
+    enemyAct(normal);
+    const normalLoss = normal.hero.maxHp - normal.hero.hp;
+
+    expect(surgeLoss).toBeGreaterThan(normalLoss);
+  });
 });
