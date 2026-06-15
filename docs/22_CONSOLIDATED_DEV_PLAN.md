@@ -50,7 +50,7 @@ player-facing demo + deploy. **C** = cross-cutting hardening (continuous).
 ## Lane B — Public playable demo + deploy
 
 ### B1 — Single-player progression persistence (quest/inventory/save).
-### B2 — Content & balance pass — 10-room dungeon, 3 enemies + 1 boss, balance tuning.
+### B2 — Content & balance pass — compact launch dungeon, 3 enemies + 1 boss, balance tuning.
 ### B3 — Wallet code-splitting (Phase 5E) — lazy-load Solana modules so the guest
 movement/combat path stays off the ~1.77 MB Solana bundle (build warns on chunk size).
 ### B4 — Deploy — client to Vercel/Netlify, server to Railway/Fly/Render; run the
@@ -105,6 +105,9 @@ no player-funded / wagering / staking path introduced
 - 2026-06-15 â€” Mainnet prototype launch hardening started: SIWS auth route limits,
   durable cosmetic shop repository adapters, Postgres shop tables in the existing
   idempotent migration, and `/admin/shop/status` purchase kill switch.
+- 2026-06-15 â€” Core game content pass: Frostglass Cavern now has a compact
+  launch route with Frost Slime, Clock Wraith, Aether Shrine, Crystal Golem, and
+  Chrono Warden; hero HP/MP persists across dungeon encounters.
 
 ## Status: PvP durability track + deploy READY
 

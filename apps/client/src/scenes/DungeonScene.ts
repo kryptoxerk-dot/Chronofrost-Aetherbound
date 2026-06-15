@@ -1,8 +1,9 @@
 import Phaser from 'phaser';
 import { GAME, COLORS } from '../config/gameConfig';
 import { addPixelText } from '../ui/text';
-import { ENEMY_CONFIG } from '../config/balance';
-import { addReward, updateGameState } from '../systems/gameState';
+import { ENEMY_CONFIG, HERO_CONFIG } from '../config/balance';
+import { FROSTGLASS_CAVERN_NODES, type DungeonNode } from '../config/dungeonPlan';
+import { addReward, healHero, setHeroVitals, updateGameState } from '../systems/gameState';
 import type { EnemyId } from '../systems/combat';
 import { SceneKeys } from './sceneKeys';
 import { createControls, anyDown, anyJustDown, type Controls } from './controls';
@@ -16,6 +17,13 @@ interface DungeonEnemy {
   defeated: boolean;
 }
 
+interface DungeonShrine {
+  sprite: Phaser.GameObjects.Rectangle;
+  label: Phaser.GameObjects.Text;
+  node: Extract<DungeonNode, { kind: 'shrine' }>;
+  used: boolean;
+}
+
 const PLAYER_SIZE = 12;
 const SPAWN = { x: 24, y: 144 };
 
@@ -24,6 +32,7 @@ export class DungeonScene extends Phaser.Scene {
   private player!: Phaser.GameObjects.Rectangle;
   private prompt!: Phaser.GameObjects.Text;
   private enemies: DungeonEnemy[] = [];
+  private shrines: DungeonShrine[] = [];
   private activeEnemy: DungeonEnemy | null = null;
 
   constructor() {
@@ -34,15 +43,19 @@ export class DungeonScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(0x081311);
     this.controls = createControls(this);
     this.enemies = [];
+    this.shrines = [];
     this.activeEnemy = null;
 
     addPixelText(this, 8, 6, 'CHRONO DUNGEON', 8).setColor('#9be7d0');
-    addPixelText(this, 8, GAME.height - 28, '[Esc] retreat to town', 8).setColor('#8fb9a3');
+    addPixelText(this, 8, GAME.height - 28, '[Esc] retreat to town   touch foes to battle', 8).setColor('#8fb9a3');
+    addPixelText(this, 8, 20, 'Frostglass Cavern: Slime -> Wraith -> Shrine -> Golem -> Warden', 8)
+      .setColor('#cfe9d6');
 
-    // A simple left-to-right crawl: two minions, then the boss at the far end.
-    this.spawnEnemy(120, 96, 'frost_slime', false);
-    this.spawnEnemy(180, 200, 'clock_wraith', false);
-    this.spawnEnemy(280, 144, 'chrono_warden', true);
+    setHeroVitals(HERO_CONFIG.maxHp, HERO_CONFIG.maxMp);
+    for (const node of FROSTGLASS_CAVERN_NODES) {
+      if (node.kind === 'shrine') this.spawnShrine(node);
+      else this.spawnEnemy(node.x, node.y, node.enemyId, node.kind === 'boss');
+    }
 
     this.player = this.add.rectangle(SPAWN.x, SPAWN.y, PLAYER_SIZE, PLAYER_SIZE, COLORS.light);
     this.prompt = addPixelText(this, 8, GAME.height - 16, '', 8);
@@ -63,6 +76,12 @@ export class DungeonScene extends Phaser.Scene {
     this.enemies.push({ sprite, label, enemyId, isBoss, defeated: false });
   }
 
+  private spawnShrine(node: Extract<DungeonNode, { kind: 'shrine' }>): void {
+    const sprite = this.add.rectangle(node.x, node.y, 16, 18, COLORS.ice).setStrokeStyle(2, COLORS.light);
+    const label = addPixelText(this, node.x - 22, node.y + 14, 'AETHER SHRINE', 8).setColor('#d6f8b8');
+    this.shrines.push({ sprite, label, node, used: false });
+  }
+
   private startBattle(enemy: DungeonEnemy): void {
     this.activeEnemy = enemy;
     this.scene.launch(SceneKeys.Battle, { enemyId: enemy.enemyId, parentKey: SceneKeys.Dungeon });
@@ -76,6 +95,7 @@ export class DungeonScene extends Phaser.Scene {
 
     if (result.winner !== 'hero') {
       // Defeat: send the player home to recover. Progress so far is kept.
+      setHeroVitals(HERO_CONFIG.maxHp, HERO_CONFIG.maxMp);
       this.scene.start(SceneKeys.Town);
       return;
     }
@@ -89,7 +109,10 @@ export class DungeonScene extends Phaser.Scene {
 
     if (enemy.isBoss) {
       updateGameState({ bossDefeated: true, questComplete: true });
-      this.time.delayedCall(1800, () => this.scene.start(SceneKeys.Town));
+      this.time.delayedCall(1800, () => {
+        setHeroVitals(HERO_CONFIG.maxHp, HERO_CONFIG.maxMp);
+        this.scene.start(SceneKeys.Town);
+      });
     }
   }
 
@@ -126,6 +149,18 @@ export class DungeonScene extends Phaser.Scene {
       if (enemy.defeated) continue;
       if (Phaser.Math.Distance.Between(this.player.x, this.player.y, enemy.sprite.x, enemy.sprite.y) <= 18) {
         this.startBattle(enemy);
+        break;
+      }
+    }
+
+    for (const shrine of this.shrines) {
+      if (shrine.used) continue;
+      if (Phaser.Math.Distance.Between(this.player.x, this.player.y, shrine.sprite.x, shrine.sprite.y) <= 18) {
+        shrine.used = true;
+        shrine.sprite.setFillStyle(0x24443d);
+        shrine.label.setColor('#8fb9a3');
+        const state = healHero(shrine.node.healHp, shrine.node.restoreMp, HERO_CONFIG.maxHp, HERO_CONFIG.maxMp);
+        this.flash(`Aether Shrine restored HP ${state.hp}/${HERO_CONFIG.maxHp} MP ${state.mp}/${HERO_CONFIG.maxMp}.`);
         break;
       }
     }

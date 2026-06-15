@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import { GAME, COLORS } from '../config/gameConfig';
+import { HERO_CONFIG } from '../config/balance';
 import { addPixelText, addPanel } from '../ui/text';
+import { getGameState, setHeroVitals } from '../systems/gameState';
 import {
   createBattle,
   nextActor,
@@ -22,6 +24,8 @@ export interface BattleLaunchData {
 export interface BattleResult {
   enemyId: EnemyId;
   winner: Side | null;
+  heroHp: number;
+  heroMp: number;
 }
 
 type Phase = 'idle' | 'awaitingInput' | 'enemyTurn' | 'over';
@@ -47,7 +51,14 @@ export class BattleScene extends Phaser.Scene {
     this.enemyId = data.enemyId;
     this.parentKey = data.parentKey ?? SceneKeys.Dungeon;
     this.controls = createControls(this);
-    this.state = createBattle(this.enemyId, { rng: () => Math.random() });
+    const saved = getGameState();
+    this.state = createBattle(this.enemyId, {
+      rng: () => Math.random(),
+      heroOverrides: {
+        hp: Phaser.Math.Clamp(saved.hp, 1, HERO_CONFIG.maxHp),
+        mp: Phaser.Math.Clamp(saved.mp, 0, HERO_CONFIG.maxMp),
+      },
+    });
     this.phase = 'idle';
 
     this.cameras.main.setBackgroundColor(0x05100e);
@@ -118,7 +129,13 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private finish(): void {
-    const result: BattleResult = { enemyId: this.enemyId, winner: this.state.winner };
+    setHeroVitals(this.state.hero.hp, this.state.hero.mp);
+    const result: BattleResult = {
+      enemyId: this.enemyId,
+      winner: this.state.winner,
+      heroHp: this.state.hero.hp,
+      heroMp: this.state.hero.mp,
+    };
     const parent = this.scene.get(this.parentKey);
     this.scene.stop();
     this.scene.resume(this.parentKey);

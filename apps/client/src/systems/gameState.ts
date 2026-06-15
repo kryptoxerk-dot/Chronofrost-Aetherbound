@@ -6,6 +6,8 @@ export interface GameState {
   gold: number;
   xp: number;
   level: number;
+  hp: number;
+  mp: number;
   inventory: string[];
   questAccepted: boolean;
   questComplete: boolean;
@@ -26,6 +28,8 @@ function defaultState(): GameState {
     gold: 0,
     xp: 0,
     level: 1,
+    hp: 32,
+    mp: 10,
     inventory: [],
     questAccepted: false,
     questComplete: false,
@@ -133,4 +137,20 @@ export function grantInventory(itemId: string): boolean {
 
 export function hasItem(itemId: string): boolean {
   return state.inventory.includes(itemId);
+}
+
+export function healHero(hpAmount: number, mpAmount: number, maxHp = 32, maxMp = 10): GameState {
+  const hp = Number.isFinite(hpAmount) ? Math.max(0, Math.floor(hpAmount)) : 0;
+  const mp = Number.isFinite(mpAmount) ? Math.max(0, Math.floor(mpAmount)) : 0;
+  state.hp = Math.min(maxHp, state.hp + hp);
+  state.mp = Math.min(maxMp, state.mp + mp);
+  persist();
+  return getGameState();
+}
+
+export function setHeroVitals(hp: number, mp: number): GameState {
+  state.hp = Math.max(0, Math.floor(hp));
+  state.mp = Math.max(0, Math.floor(mp));
+  persist();
+  return getGameState();
 }

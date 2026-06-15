@@ -30,6 +30,16 @@ export const ENEMY_CONFIG = {
     xp: 7,
     gold: 10,
   },
+  crystal_golem: {
+    id: 'crystal_golem',
+    name: 'Crystal Golem',
+    maxHp: 24,
+    attack: 6,
+    defense: 4,
+    speed: 4,
+    xp: 12,
+    gold: 16,
+  },
   chrono_warden: {
     id: 'chrono_warden',
     name: 'Chrono Warden',

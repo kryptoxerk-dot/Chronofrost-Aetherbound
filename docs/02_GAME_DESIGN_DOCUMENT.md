@@ -47,7 +47,18 @@ Founder cosmetic preview NPC later
 
 ## First dungeon: Frostglass Cavern
 
-A short 3–10 room dungeon for prototype. The code starter uses a very short version; the target version should use 10 rooms.
+A short 3–10 room dungeon for prototype. The current launch slice is a compact
+five-node run so the first public build is finishable with placeholder art:
+
+```text
+Frost Slime
+Clock Wraith
+Aether Shrine
+Crystal Golem
+Chrono Warden boss
+```
+
+The later target version should use 10 rooms.
 
 ```text
 Entrance

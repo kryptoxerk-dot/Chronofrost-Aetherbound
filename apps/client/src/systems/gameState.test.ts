@@ -4,7 +4,9 @@ import {
   spendGold,
   grantInventory,
   getGameState,
+  healHero,
   resetGameState,
+  setHeroVitals,
   xpForNextLevel,
 } from './gameState';
 
@@ -41,5 +43,13 @@ describe('game state (off-chain, wallet-free)', () => {
 
     expect(spendGold(40)).toBe(true);
     expect(getGameState().gold).toBe(60);
+  });
+
+  it('persists hero vitals and clamps shrine healing to max values', () => {
+    setHeroVitals(12, 2);
+    expect(getGameState()).toMatchObject({ hp: 12, mp: 2 });
+
+    healHero(999, 999, 32, 10);
+    expect(getGameState()).toMatchObject({ hp: 32, mp: 10 });
   });
 });
