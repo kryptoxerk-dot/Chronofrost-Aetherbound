@@ -156,6 +156,11 @@ Official mint pinned
 Risk disclaimer published
 ```
 
+Before declaring launch complete, review
+`docs/23_MAINNET_PROTOTYPE_LAUNCH_AUDIT.md` and attach evidence for each
+external go-live gate: live URLs, official mint/treasury config, tiny mainnet
+cosmetic purchase dry run, legal/compliance approval, and the 5-tester playtest.
+
 ## Rollback plan
 
 ```text
