@@ -16,6 +16,7 @@
     "agent:context": "node scripts/agent-context-pack.mjs",
     "agent:preflight": "node scripts/agent-preflight.mjs",
     "architecture:guard": "node scripts/architecture-guard.mjs",
+    "smoke:launch": "node scripts/launch-smoke.mjs",
     "verify:agent": "pnpm agent:preflight && pnpm architecture:guard && pnpm verify"
   },
   "devDependencies": {

@@ -56,7 +56,13 @@ static); set `VITE_API_BASE_URL` to the API URL at build time.
 pnpm install
 pnpm typecheck
 pnpm build
+pnpm smoke:launch
 ```
+
+`pnpm smoke:launch` starts the built API locally in memory mode with purchases
+disabled, checks `/health`, `/shop/items`, `/shop/quote` paused behavior,
+`/admin/shop/status`, `/inventory/:wallet`, and confirms the client `dist`
+assets exist. It does not require Postgres, Solana config, or wallet access.
 
 ## Client deployment
 
@@ -124,6 +130,7 @@ TREASURY_TOKEN_ACCOUNT=<mainnet treasury ATA>
 Client deployed
 Server deployed
 Health endpoint live
+Local smoke passed (`pnpm smoke:launch`)
 CORS correct
 RPC stable
 Mint address configured
