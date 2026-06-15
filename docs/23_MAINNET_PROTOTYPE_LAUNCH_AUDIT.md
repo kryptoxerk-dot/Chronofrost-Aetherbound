@@ -38,10 +38,12 @@ operator before declaring the real mainnet launch complete:
 | 5-tester playtest | Notes showing 5 opened, 5 reached first battle, 3 cleared dungeon, 0 forced to connect wallet |
 | Public status/rollback process | Operator access to `SHOP_PURCHASES_ENABLED=false` or `/admin/shop/status` |
 
+Use `docs/24_GO_LIVE_EVIDENCE.md` and `scripts/go-live-evidence-check.mjs` to
+collect and validate these external gates before launch sign-off.
+
 ## Audit result
 
 The repository is a launch candidate for the accepted mainnet prototype scope.
 The thread goal should not be marked complete until the external go-live gates
 above are evidenced, because the original plan includes actual mainnet launch
 readiness, a tiny purchase dry run, and the playtest gate.
-

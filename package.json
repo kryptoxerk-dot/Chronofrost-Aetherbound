@@ -17,6 +17,7 @@
     "agent:preflight": "node scripts/agent-preflight.mjs",
     "architecture:guard": "node scripts/architecture-guard.mjs",
     "smoke:launch": "node scripts/launch-smoke.mjs",
+    "go-live:evidence": "node scripts/go-live-evidence-check.mjs",
     "readiness:devnet": "node -e \"process.env.LAUNCH_TARGET='devnet'; import('./scripts/launch-readiness.mjs')\"",
     "readiness:mainnet": "node -e \"process.env.LAUNCH_TARGET='mainnet'; import('./scripts/launch-readiness.mjs')\"",
     "verify:agent": "pnpm agent:preflight && pnpm architecture:guard && pnpm verify"

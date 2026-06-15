@@ -1,0 +1,56 @@
+{
+  "launchName": "Chronofrost Mainnet Prototype",
+  "evidenceCollectedAt": "<ISO timestamp>",
+  "operator": {
+    "name": "<operator name>",
+    "contact": "<operator contact>"
+  },
+  "deployment": {
+    "clientUrl": "https://game.example.com",
+    "apiUrl": "https://api.example.com",
+    "healthOk": true,
+    "corsSmokeOk": true,
+    "deployedAt": "<ISO timestamp>"
+  },
+  "aether": {
+    "cluster": "mainnet-beta",
+    "mint": "<official AETHER mint public key>",
+    "treasuryWallet": "<treasury wallet public key>",
+    "treasuryTokenAccount": "<treasury token account public key>",
+    "treasuryAtaVerified": true,
+    "publicMintDisclosureUrl": "https://example.com/aether-mint"
+  },
+  "purchaseDryRun": {
+    "confirmed": true,
+    "itemId": "founder_palette",
+    "buyerWallet": "<buyer wallet public key>",
+    "txSignature": "<mainnet transaction signature>",
+    "orderId": "<server order id>",
+    "durableOrderId": "<shop_orders row id or primary key>",
+    "inventoryGrantId": "<shop_inventory_grants row id or primary key>",
+    "amountRaw": "<exact token amount in base units>",
+    "confirmedAt": "<ISO timestamp>"
+  },
+  "legal": {
+    "approved": true,
+    "approver": "<legal/compliance reviewer>",
+    "approvalDate": "<ISO date>",
+    "scope": "<jurisdictions and launch copy reviewed>",
+    "reference": "<document, ticket, email, or approval reference>"
+  },
+  "playtest": {
+    "completedAt": "<ISO timestamp>",
+    "testersOpened": 5,
+    "reachedFirstBattle": 5,
+    "clearedDungeon": 3,
+    "forcedWalletCount": 0,
+    "notesUrl": "https://example.com/playtest-notes"
+  },
+  "rollback": {
+    "purchasesDisabledTested": true,
+    "guestGameStayedOnline": true,
+    "method": "SHOP_PURCHASES_ENABLED=false or POST /admin/shop/status",
+    "operator": "<operator name>",
+    "verifiedAt": "<ISO timestamp>"
+  }
+}

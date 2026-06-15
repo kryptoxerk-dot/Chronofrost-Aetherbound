@@ -157,9 +157,16 @@ Risk disclaimer published
 ```
 
 Before declaring launch complete, review
-`docs/23_MAINNET_PROTOTYPE_LAUNCH_AUDIT.md` and attach evidence for each
-external go-live gate: live URLs, official mint/treasury config, tiny mainnet
-cosmetic purchase dry run, legal/compliance approval, and the 5-tester playtest.
+`docs/23_MAINNET_PROTOTYPE_LAUNCH_AUDIT.md`, fill the evidence template from
+`docs/24_GO_LIVE_EVIDENCE.md`, and run:
+
+```bash
+node scripts/go-live-evidence-check.mjs path/to/go_live_evidence.json
+```
+
+The check requires live URLs, official mint/treasury config, tiny mainnet
+cosmetic purchase dry run, legal/compliance approval, the 5-tester playtest, and
+rollback proof.
 
 ## Rollback plan
 
