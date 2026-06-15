@@ -8,6 +8,7 @@ VITE_SOLANA_CLUSTER=devnet
 VITE_SOLANA_RPC_URL=https://api.devnet.solana.com
 VITE_AETHER_MINT=<devnet mint>
 VITE_TREASURY_TOKEN_ACCOUNT=<treasury ATA>
+VITE_PVP_ENABLED=false
 ```
 
 ## Server
@@ -74,6 +75,7 @@ Privacy rule: if fingerprinting is enabled, the server stores salted hashes only
 | `AUTH_NONCE_RATE_LIMIT_WINDOW_MS` | `60000` | SIWS nonce rate-limit window. |
 | `AUTH_VERIFY_RATE_LIMIT_MAX` | `20` | Max SIWS verify requests per IP per window. |
 | `AUTH_VERIFY_RATE_LIMIT_WINDOW_MS` | `60000` | SIWS verify rate-limit window. |
+| `VITE_PVP_ENABLED` | `false` | Client flag for showing Arena/PvP. Keep false for mainnet prototype launch; enable only for no-prize beta. |
 
 ## Launch readiness commands
 

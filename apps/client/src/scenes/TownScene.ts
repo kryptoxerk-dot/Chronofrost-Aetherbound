@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { GAME, COLORS } from '../config/gameConfig';
+import { ENV, GAME, COLORS } from '../config/gameConfig';
 import { addPixelText } from '../ui/text';
 import { getGameState, updateGameState } from '../systems/gameState';
 import { SceneKeys } from './sceneKeys';
@@ -51,9 +51,11 @@ export class TownScene extends Phaser.Scene {
       this.scene.start(SceneKeys.Shop);
     });
 
-    this.buildStructure(160, 210, 'ARENA', COLORS.mid, () => {
-      this.scene.start(SceneKeys.Pvp);
-    });
+    if (ENV.pvpEnabled) {
+      this.buildStructure(160, 210, 'ARENA', COLORS.mid, () => {
+        this.scene.start(SceneKeys.Pvp);
+      });
+    }
 
     // The quest-giver NPC.
     this.buildNpc(60, 70);

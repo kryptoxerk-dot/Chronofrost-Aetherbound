@@ -17,6 +17,7 @@ with what is actually implemented in the working tree.
 | Durable payout approval, treasury executor | Durable approval built; no executor |
 | Deploy / public demo | Not done |
 | Mainnet cosmetic shop durability | Durable order/inventory repositories added; no backend player-token movement |
+| Mainnet prototype PvP exposure | Hidden by default with `VITE_PVP_ENABLED=false`; no-prize beta opt-in only |
 
 Two parallel lanes: **A** = PvP ranked durability (active codex track), **B** =
 player-facing demo + deploy. **C** = cross-cutting hardening (continuous).
@@ -108,6 +109,10 @@ no player-funded / wagering / staking path introduced
 - 2026-06-15 â€” Core game content pass: Frostglass Cavern now has a compact
   launch route with Frost Slime, Clock Wraith, Aether Shrine, Crystal Golem, and
   Chrono Warden; hero HP/MP persists across dungeon encounters.
+
+- 2026-06-15 - Mainnet prototype PvP exposure gated: Arena is hidden unless
+  `VITE_PVP_ENABLED=true`; readiness blocks mainnet PvP exposure unless explicitly
+  allowed as no-prize beta.
 
 ## Status: PvP durability track + deploy READY
 

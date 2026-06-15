@@ -88,6 +88,7 @@ VITE_SOLANA_CLUSTER=devnet
 VITE_SOLANA_RPC_URL=https://api.devnet.solana.com
 VITE_AETHER_MINT=<devnet mint>
 VITE_TREASURY_TOKEN_ACCOUNT=<devnet treasury ATA>
+VITE_PVP_ENABLED=false
 ```
 
 ## Server deployment
@@ -128,7 +129,12 @@ SOLANA_RPC_URL=<paid/reliable RPC>
 AETHER_MINT=<official Pump.fun token mint or chosen mint>
 TREASURY_WALLET=<mainnet treasury public key>
 TREASURY_TOKEN_ACCOUNT=<mainnet treasury ATA>
+VITE_PVP_ENABLED=false
 ```
+
+Keep `VITE_PVP_ENABLED=false` for the mainnet prototype. Set it true only for an
+intentional no-prize PvP beta, and set `ALLOW_MAINNET_PVP_BETA=true` when running
+`launch-readiness.mjs`.
 
 ## Launch checklist
 

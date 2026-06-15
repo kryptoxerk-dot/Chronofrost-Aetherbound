@@ -63,6 +63,9 @@ requireOneOf('SHOP_STORAGE_ADAPTER', ['memory', 'postgres'], 'shop storage adapt
 requireOneOf('PVP_STORAGE_ADAPTER', ['memory', 'postgres'], 'PvP storage adapter must be explicit');
 requireOneOf('SHOP_PURCHASES_ENABLED', ['true', 'false'], 'operator must intentionally enable or disable purchases');
 requireIntegerString('PVP_PRIZE_POOL_RAW', 'mainnet prototype launch must make prize-pool intent explicit');
+if (value('VITE_PVP_ENABLED') && !['true', 'false', '1', '0'].includes(value('VITE_PVP_ENABLED').toLowerCase())) {
+  errors.push('VITE_PVP_ENABLED must be true/false when set');
+}
 
 if (value('SHOP_PURCHASES_ENABLED') === 'true') {
   requireValue('AETHER_MINT', 'enabled cosmetic purchases need an official mint');
@@ -84,6 +87,9 @@ if (isMainnet) {
   requireValue('TREASURY_TOKEN_ACCOUNT', 'mainnet launch requires the treasury associated token account');
   if (value('PVP_PRIZE_POOL_RAW') !== '0') {
     errors.push('PVP_PRIZE_POOL_RAW must be 0 for mainnet prototype launch; PvP prizes are post-launch gated');
+  }
+  if (['true', '1'].includes(value('VITE_PVP_ENABLED').toLowerCase()) && value('ALLOW_MAINNET_PVP_BETA') !== 'true') {
+    errors.push('VITE_PVP_ENABLED must be false for mainnet prototype launch unless ALLOW_MAINNET_PVP_BETA=true');
   }
   if (value('PVP_STORAGE_ADAPTER') === 'postgres') {
     warnings.push('PVP_STORAGE_ADAPTER=postgres is allowed only for no-prize PvP beta; hide PvP if not intentionally launching it');

@@ -28,4 +28,5 @@ export const ENV = {
   solanaRpcUrl: import.meta.env.VITE_SOLANA_RPC_URL ?? 'https://api.devnet.solana.com',
   aetherMint: import.meta.env.VITE_AETHER_MINT ?? '',
   treasuryTokenAccount: import.meta.env.VITE_TREASURY_TOKEN_ACCOUNT ?? '',
+  pvpEnabled: ['1', 'true', 'yes', 'on'].includes(String(import.meta.env.VITE_PVP_ENABLED ?? '').toLowerCase()),
 };
