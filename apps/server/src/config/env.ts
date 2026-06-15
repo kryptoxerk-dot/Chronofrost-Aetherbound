@@ -8,6 +8,7 @@ const EnvBool = z.preprocess((value: unknown) => {
 
 const EnvSchema = z.object({
   NODE_ENV: z.string().default('development'),
+  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   SERVER_PORT: z.coerce.number().default(8787),
   // Many PaaS hosts (Render/Railway/Fly/Heroku) inject the bind port as PORT.
   // When present it takes precedence over SERVER_PORT (see resolveServerPort).
@@ -67,6 +68,40 @@ const EnvSchema = z.object({
 });
 
 export const env = EnvSchema.parse(process.env);
+
+export function isProduction(): boolean {
+  return env.NODE_ENV === 'production';
+}
+
+const DEV_SESSION_SECRET = 'dev-only-change-me';
+
+/**
+ * Fail fast at boot on unsafe production configuration. Returns the problems it
+ * found (empty in non-production or when valid) so it is also unit-testable.
+ */
+type ProdCheckEnv = Pick<typeof env, 'NODE_ENV' | 'SESSION_SECRET' | 'PVP_STORAGE_ADAPTER' | 'DATABASE_URL'>;
+
+export function productionConfigProblems(e: ProdCheckEnv = env): string[] {
+  if (e.NODE_ENV !== 'production') return [];
+  const problems: string[] = [];
+  if (!e.SESSION_SECRET || e.SESSION_SECRET === DEV_SESSION_SECRET) {
+    problems.push('SESSION_SECRET must be set to a strong random value in production');
+  } else if (e.SESSION_SECRET.length < 16) {
+    problems.push('SESSION_SECRET must be at least 16 characters in production');
+  }
+  if (e.PVP_STORAGE_ADAPTER === 'postgres' && !e.DATABASE_URL) {
+    problems.push('DATABASE_URL is required when PVP_STORAGE_ADAPTER=postgres');
+  }
+  return problems;
+}
+
+/** Throws a single combined error if production configuration is unsafe. */
+export function assertProductionConfig(): void {
+  const problems = productionConfigProblems();
+  if (problems.length > 0) {
+    throw new Error(`Unsafe production configuration:\n- ${problems.join('\n- ')}`);
+  }
+}
 
 /** Bind port: prefer the host-injected PORT, else SERVER_PORT. */
 export function resolveServerPort(): number {

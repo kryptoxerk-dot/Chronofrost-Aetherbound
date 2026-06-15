@@ -179,3 +179,7 @@ node scripts/agent-context-pack.mjs
 - 2026-06-15 - Enemy variety: data-driven behaviors (Wraith haste, Golem guard,
   Warden Temporal Surge) via the seeded combat model; sims stay deterministic.
   See `VERIFICATION_REPORT_ENEMY_VARIETY.md`.
+- 2026-06-15 - Server production hardening: helmet security headers, sanitized
+  error + JSON 404 handlers, testable buildServer() factory, body limit +
+  trustProxy, and fail-fast production-secret validation. See
+  `VERIFICATION_REPORT_SERVER_HARDENING.md`.
