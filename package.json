@@ -23,7 +23,7 @@
     "verify:agent": "pnpm agent:preflight && pnpm architecture:guard && pnpm verify"
   },
   "devDependencies": {
-    "typescript": "^5.6.3",
+    "typescript": "^6.0.3",
     "tsx": "^4.19.2",
     "@types/node": "^22.9.0"
   },
