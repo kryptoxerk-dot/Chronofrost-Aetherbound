@@ -296,26 +296,19 @@ export function createPostgresPvpRepositories(client: SqlClient): PvpRepositorie
             }
           }
 
-          // Apply Elo deltas + win/loss/draw bookkeeping atomically with the match.
+          // Persist rating events for audit only. Player rating + W/L/D rows are
+          // owned by the authoritative in-memory ladder and persisted via
+          // upsertRankedPlayer (write-through), so this adapter does NOT mutate
+          // pvp_players here. Keeping insertMatch persist-only matches the memory
+          // adapter and avoids double-applying Elo when both run under
+          // write-through.
           for (const [playerId, delta] of Object.entries(record.ratingDelta)) {
-            const before = await tx.query<{ rating: number | string }>(
-              `SELECT rating FROM pvp_players WHERE player_id = $1 FOR UPDATE`,
+            const existing = await tx.query<{ rating: number | string }>(
+              `SELECT rating FROM pvp_players WHERE player_id = $1`,
               [playerId],
             );
-            if (!before.rows[0]) {
-              throw new Error(`insertMatch: ranked player ${playerId} must be upserted before recording a match`);
-            }
-            const ratingBefore = toNumber(before.rows[0].rating);
-            const ratingAfter = ratingBefore + delta;
-
-            let wld = 'draws = draws + 1';
-            if (record.winnerId === playerId) wld = 'wins = wins + 1';
-            else if (record.winnerId !== null) wld = 'losses = losses + 1';
-
-            await tx.query(
-              `UPDATE pvp_players SET rating = $2, ${wld}, updated_at = now() WHERE player_id = $1`,
-              [playerId, ratingAfter],
-            );
+            const ratingAfter = existing.rows[0] ? toNumber(existing.rows[0].rating) : 1000;
+            const ratingBefore = ratingAfter - delta;
             await tx.query(
               `INSERT INTO pvp_rating_events (match_id, player_id, rating_before, rating_delta, rating_after)
                  VALUES ($1, $2, $3, $4, $5)`,

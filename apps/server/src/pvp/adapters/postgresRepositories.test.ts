@@ -80,7 +80,7 @@ class FakeSqlClient implements SqlClient {
         .slice(0, limit)
         .map((r) => ({ ...r }));
     }
-    if (sql.startsWith('SELECT rating FROM pvp_players WHERE player_id = $1 FOR UPDATE')) {
+    if (sql.startsWith('SELECT rating FROM pvp_players WHERE player_id = $1')) {
       const row = this.players.get(p[0] as string);
       return row ? [{ rating: row.rating }] : [];
     }
@@ -355,16 +355,17 @@ describe('postgres pvp repositories', () => {
     expect(fetched?.actions1).toEqual(['attack', 'freeze', 'attack']);
     expect(fetched?.seed).toBe(42);
 
-    // Rating + W/L bookkeeping applied transactionally.
+    // Persist-only: insertMatch records the match + rating events but does NOT
+    // mutate player rows (the ladder owns live ratings, persisted via upsert).
     const alice = await repos.players.getRankedPlayer('alice');
     const bob = await repos.players.getRankedPlayer('bob');
-    expect(alice).toMatchObject({ rating: 1016, wins: 1, losses: 0 });
-    expect(bob).toMatchObject({ rating: 984, wins: 0, losses: 1 });
+    expect(alice).toMatchObject({ rating: 1000, wins: 0, losses: 0 });
+    expect(bob).toMatchObject({ rating: 1000, wins: 0, losses: 0 });
 
     expect(await repos.matches.getMatch('missing')).toBeNull();
   });
 
-  it('records a draw without incrementing wins/losses', async () => {
+  it('persists a match without mutating player rows (persist-only)', async () => {
     await repos.players.upsertRankedPlayer(rankedPlayer('a', { rating: 1000 }));
     await repos.players.upsertRankedPlayer(rankedPlayer('b', { rating: 1000 }));
     await repos.matches.insertMatch({
@@ -379,8 +380,10 @@ describe('postgres pvp repositories', () => {
       completionReason: 'combat',
       createdAt: '2026-02-02T00:00:00.000Z',
     });
-    expect(await repos.players.getRankedPlayer('a')).toMatchObject({ wins: 0, losses: 0, draws: 1 });
-    expect(await repos.players.getRankedPlayer('b')).toMatchObject({ wins: 0, losses: 0, draws: 1 });
+    const stored = await repos.matches.getMatch('draw1');
+    expect(stored?.winnerId).toBeNull();
+    expect(await repos.players.getRankedPlayer('a')).toMatchObject({ wins: 0, losses: 0, draws: 0 });
+    expect(await repos.players.getRankedPlayer('b')).toMatchObject({ wins: 0, losses: 0, draws: 0 });
   });
 
   it('lists matches for a player ordered by creation', async () => {

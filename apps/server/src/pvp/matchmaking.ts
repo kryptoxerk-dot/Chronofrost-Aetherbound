@@ -7,7 +7,8 @@ import {
   type DuelAction,
   type DuelState,
 } from './duelEngine.js';
-import { ladder, type MatchRecord } from './ladder.js';
+import { ladder, type MatchRecord, type RankedPlayer } from './ladder.js';
+import { persistCompletedMatch } from './pvpPersistence.js';
 
 export type PvpPlayerRef = {
   id: string;
@@ -144,6 +145,14 @@ function completeMatch(match: LiveMatch, reason: 'combat' | 'forfeit' | 'timeout
   match.ratingDelta = { ...record.ratingDelta };
   activeMatchByPlayer.delete(match.p1.id);
   activeMatchByPlayer.delete(match.p2.id);
+
+  // Durable write-through (fire-and-forget). The ladder already updated live
+  // ratings above; this persists the authoritative post-match state.
+  const persistPlayers = [ladder.getPlayer(match.p1.id), ladder.getPlayer(match.p2.id)].filter(
+    (p): p is RankedPlayer => Boolean(p),
+  );
+  persistCompletedMatch(record, persistPlayers);
+
   return record;
 }
 

@@ -5,7 +5,9 @@ import { healthRoutes } from './routes/health.js';
 import { shopRoutes } from './routes/shop.js';
 import { authRoutes } from './routes/auth.js';
 import { pvpRoutes } from './routes/pvp.js';
-import { initPvpStorage, closePvpStorage } from './pvp/pvpStorage.js';
+import { initPvpStorage, closePvpStorage, getPvpStorage, getPgStorageHandle } from './pvp/pvpStorage.js';
+import { registerMatchPersistence } from './pvp/pvpPersistence.js';
+import { ladder } from './pvp/ladder.js';
 
 const app = Fastify({ logger: true });
 
@@ -13,6 +15,22 @@ const app = Fastify({ logger: true });
 // mode this fails fast on an unreachable database.
 await initPvpStorage();
 app.log.info({ adapter: env.PVP_STORAGE_ADAPTER }, 'PvP storage initialized');
+
+// In postgres mode, mirror completed matches to durable storage and rehydrate
+// the live ladder so ranked ratings/records survive a restart.
+if (getPgStorageHandle()) {
+  const repos = getPvpStorage();
+  registerMatchPersistence(
+    {
+      upsertRankedPlayer: (player) => repos.players.upsertRankedPlayer(player),
+      insertMatch: (record) => repos.matches.insertMatch(record),
+    },
+    (err) => app.log.error({ err }, 'PvP match write-through failed'),
+  );
+  const loaded = await repos.players.listRankedPlayers(10_000);
+  const count = ladder.hydrate(loaded);
+  app.log.info({ count }, 'PvP ladder rehydrated from durable storage');
+}
 
 await app.register(cors, {
   origin: env.CORS_ORIGIN,

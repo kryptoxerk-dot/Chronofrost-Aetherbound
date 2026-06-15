@@ -209,6 +209,18 @@ export const ladder = {
     return { ok: true };
   },
 
+  /**
+   * Load durable ranked players into the live ladder (used on boot in postgres
+   * mode so ratings/records survive restarts). Existing in-memory entries are
+   * overwritten by the loaded snapshot.
+   */
+  hydrate(loaded: RankedPlayer[]): number {
+    for (const player of loaded) {
+      players.set(player.id, clonePlayer(player));
+    }
+    return players.size;
+  },
+
   _mutateMatchForTests(matchId: string, mutator: (record: MatchRecord) => void) {
     const found = matches.get(matchId);
     if (found) mutator(found);
