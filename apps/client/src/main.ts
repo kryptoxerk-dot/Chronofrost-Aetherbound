@@ -1,4 +1,3 @@
-import { Buffer } from 'buffer';
 import Phaser from 'phaser';
 import { GAME } from './config/gameConfig';
 import { BootScene } from './scenes/BootScene';
@@ -9,9 +8,8 @@ import { ShopScene } from './scenes/ShopScene';
 import { HudScene } from './scenes/HudScene';
 import { PvpScene } from './scenes/PvpScene';
 
-// Solana web3 / spl-token rely on a Node-style Buffer global in the browser.
-const globalScope = globalThis as unknown as { Buffer?: typeof Buffer };
-if (!globalScope.Buffer) globalScope.Buffer = Buffer;
+// The Node-style Buffer global that @solana/* needs is installed lazily by
+// src/solana/loadSolana.ts, so it is no longer pulled into the guest bundle here.
 
 new Phaser.Game({
   type: Phaser.AUTO,

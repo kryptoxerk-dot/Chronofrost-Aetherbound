@@ -3,8 +3,7 @@ import { GAME, COLORS } from '../config/gameConfig';
 import { addPixelText, addPanel } from '../ui/text';
 import { SHOP_ITEMS } from '../config/balance';
 import { getGameState, spendGold, grantInventory, hasItem } from '../systems/gameState';
-import { connectPhantom, getAetherBalance } from '../solana/wallet';
-import { buildAndSendAetherPurchase } from '../solana/purchase';
+import { loadWallet, loadPurchase } from '../solana/loadSolana';
 import { requestQuote, confirmPurchase } from '../services/api';
 import { SceneKeys } from './sceneKeys';
 import { createControls, anyJustDown, type Controls } from './controls';
@@ -113,6 +112,8 @@ export class ShopScene extends Phaser.Scene {
   private async connectWallet(): Promise<void> {
     this.busy = true;
     try {
+      this.flash('Loading wallet…');
+      const { connectPhantom, getAetherBalance } = await loadWallet();
       const wallet = await connectPhantom();
       this.flash('Wallet connected (devnet).');
       await getAetherBalance(wallet).catch(() => undefined);
@@ -141,6 +142,7 @@ export class ShopScene extends Phaser.Scene {
       this.flash('Requesting quote...');
       const quote = await requestQuote(state.walletAddress, item.id);
       this.flash('Approve the transfer in your wallet...');
+      const { buildAndSendAetherPurchase } = await loadPurchase();
       const signature = await buildAndSendAetherPurchase(quote);
       this.flash('Verifying on-chain...');
       const result = await confirmPurchase(quote.orderId, signature);
