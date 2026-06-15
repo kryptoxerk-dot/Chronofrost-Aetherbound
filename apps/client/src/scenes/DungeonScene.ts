@@ -4,6 +4,7 @@ import { addPixelText } from '../ui/text';
 import { ENEMY_CONFIG, HERO_CONFIG } from '../config/balance';
 import { FROSTGLASS_CAVERN_NODES, type DungeonNode } from '../config/dungeonPlan';
 import { addReward, healHero, setHeroVitals, updateGameState } from '../systems/gameState';
+import { recordFunnelEvent } from '../systems/analytics';
 import type { EnemyId } from '../systems/combat';
 import { SceneKeys } from './sceneKeys';
 import { createControls, anyDown, anyJustDown, type Controls } from './controls';
@@ -52,6 +53,7 @@ export class DungeonScene extends Phaser.Scene {
       .setColor('#cfe9d6');
 
     setHeroVitals(HERO_CONFIG.maxHp, HERO_CONFIG.maxMp);
+    recordFunnelEvent('dungeon_entered');
     for (const node of FROSTGLASS_CAVERN_NODES) {
       if (node.kind === 'shrine') this.spawnShrine(node);
       else this.spawnEnemy(node.x, node.y, node.enemyId, node.kind === 'boss');
@@ -84,6 +86,8 @@ export class DungeonScene extends Phaser.Scene {
 
   private startBattle(enemy: DungeonEnemy): void {
     this.activeEnemy = enemy;
+    recordFunnelEvent('battle_started');
+    if (enemy.isBoss) recordFunnelEvent('boss_reached');
     this.scene.launch(SceneKeys.Battle, { enemyId: enemy.enemyId, parentKey: SceneKeys.Dungeon });
     this.scene.pause();
   }
@@ -95,6 +99,7 @@ export class DungeonScene extends Phaser.Scene {
 
     if (result.winner !== 'hero') {
       // Defeat: send the player home to recover. Progress so far is kept.
+      recordFunnelEvent('hero_defeated');
       setHeroVitals(HERO_CONFIG.maxHp, HERO_CONFIG.maxMp);
       this.scene.start(SceneKeys.Town);
       return;
@@ -102,6 +107,8 @@ export class DungeonScene extends Phaser.Scene {
 
     const cfg = ENEMY_CONFIG[enemy.enemyId];
     enemy.defeated = true;
+    recordFunnelEvent('enemy_defeated');
+    if (enemy.isBoss) recordFunnelEvent('boss_defeated');
     enemy.sprite.destroy();
     enemy.label.destroy();
     const { leveledUp, level } = addReward({ gold: cfg.gold, xp: cfg.xp });
@@ -125,6 +132,7 @@ export class DungeonScene extends Phaser.Scene {
 
   update(_time: number, delta: number): void {
     if (anyJustDown([this.controls.back])) {
+      recordFunnelEvent('dungeon_retreat');
       this.scene.start(SceneKeys.Town);
       return;
     }
@@ -157,6 +165,7 @@ export class DungeonScene extends Phaser.Scene {
       if (shrine.used) continue;
       if (Phaser.Math.Distance.Between(this.player.x, this.player.y, shrine.sprite.x, shrine.sprite.y) <= 18) {
         shrine.used = true;
+        recordFunnelEvent('shrine_used');
         shrine.sprite.setFillStyle(0x24443d);
         shrine.label.setColor('#8fb9a3');
         const state = healHero(shrine.node.healHp, shrine.node.restoreMp, HERO_CONFIG.maxHp, HERO_CONFIG.maxMp);
