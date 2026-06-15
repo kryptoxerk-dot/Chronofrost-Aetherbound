@@ -90,6 +90,63 @@ paths:
       security: []
       responses:
         '200': { description: OK }
+  /shop/items:
+    get:
+      security: []
+      summary: List active cosmetic shop items.
+      responses:
+        '200': { description: Active fixed-price cosmetic items }
+  /shop/quote:
+    post:
+      security: []
+      summary: Create a server-side cosmetic purchase order.
+      description: Returns transfer parameters for a player-signed SPL transfer. No backend token movement.
+      responses:
+        '200': { description: Purchase quote/order }
+        '400': { description: Invalid wallet, item, or config }
+        '503': { description: Solana config missing or purchases disabled }
+  /shop/confirm:
+    post:
+      security: []
+      summary: Verify a player-signed transfer and grant the cosmetic once.
+      responses:
+        '200': { description: Cosmetic granted }
+        '400': { description: Transaction verification failed }
+        '409': { description: Duplicate tx or non-pending order }
+        '410': { description: Order expired }
+  /inventory/{wallet}:
+    get:
+      security: []
+      parameters:
+        - in: path
+          name: wallet
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Cosmetic inventory grants for wallet }
+  /admin/shop/status:
+    get:
+      security: [{ AdminToken: [] }]
+      summary: Read cosmetic purchase availability.
+      responses:
+        '200': { description: Shop status }
+        '401': { description: Missing admin token }
+    post:
+      security: [{ AdminToken: [] }]
+      summary: Enable or disable cosmetic purchases without taking the game offline.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [purchasesEnabled]
+              properties:
+                purchasesEnabled: { type: boolean }
+                reason: { type: string, maxLength: 240 }
+      responses:
+        '200': { description: Updated shop status }
+        '401': { description: Missing admin token }
   /pvp/queue:
     post:
       summary: Join ranked PvP queue.

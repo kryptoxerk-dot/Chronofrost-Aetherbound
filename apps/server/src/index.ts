@@ -8,6 +8,7 @@ import { pvpRoutes } from './routes/pvp.js';
 import { initPvpStorage, closePvpStorage, getPvpStorage, getPgStorageHandle } from './pvp/pvpStorage.js';
 import { registerMatchPersistence } from './pvp/pvpPersistence.js';
 import { ladder } from './pvp/ladder.js';
+import { initShopStorage, closeShopStorage } from './shop/shopStorage.js';
 
 const app = Fastify({ logger: true });
 
@@ -15,6 +16,8 @@ const app = Fastify({ logger: true });
 // mode this fails fast on an unreachable database.
 await initPvpStorage();
 app.log.info({ adapter: env.PVP_STORAGE_ADAPTER }, 'PvP storage initialized');
+await initShopStorage({ client: getPgStorageHandle()?.client });
+app.log.info({ adapter: env.SHOP_STORAGE_ADAPTER }, 'Shop storage initialized');
 
 // In postgres mode, mirror completed matches to durable storage and rehydrate
 // the live ladder so ranked ratings/records survive a restart.
@@ -43,6 +46,7 @@ await app.register(pvpRoutes);
 await app.register(shopRoutes);
 
 app.addHook('onClose', async () => {
+  await closeShopStorage();
   await closePvpStorage();
 });
 

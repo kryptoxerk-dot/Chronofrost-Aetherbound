@@ -14,8 +14,9 @@ with what is actually implemented in the working tree.
 | Rate limiting, SIWS auth scaffold | Built |
 | PvP persistence (Postgres adapter) | **Done (Task 001)** — implemented + tested, not yet wired into routes |
 | PvP browser UI (`pvpApi.ts`, PvP scenes) | Missing in working tree |
-| Durable payout approval, treasury executor | Approval in-memory; no executor |
+| Durable payout approval, treasury executor | Durable approval built; no executor |
 | Deploy / public demo | Not done |
+| Mainnet cosmetic shop durability | Durable order/inventory repositories added; no backend player-token movement |
 
 Two parallel lanes: **A** = PvP ranked durability (active codex track), **B** =
 player-facing demo + deploy. **C** = cross-cutting hardening (continuous).
@@ -54,6 +55,10 @@ player-facing demo + deploy. **C** = cross-cutting hardening (continuous).
 movement/combat path stays off the ~1.77 MB Solana bundle (build warns on chunk size).
 ### B4 — Deploy — client to Vercel/Netlify, server to Railway/Fly/Render; run the
 5-tester playtest checklist from `04`.
+### B5 â€” Mainnet cosmetic shop hardening
+- Use `SHOP_STORAGE_ADAPTER=postgres` for durable orders/inventory grants.
+- Use `SHOP_PURCHASES_ENABLED=false` or `/admin/shop/status` as a rollback switch.
+- Keep `$AETHER` purchases fixed-price cosmetics/profile identity only.
 
 ---
 
@@ -97,10 +102,13 @@ no player-funded / wagering / staking path introduced
   + static client, auto-wired URLs), server `Dockerfile`, host `PORT` binding,
   runbook. Production build smoke-tested (`/health` 200). See
   `VERIFICATION_REPORT_DEPLOY.md`. **Ready to go live.**
+- 2026-06-15 â€” Mainnet prototype launch hardening started: SIWS auth route limits,
+  durable cosmetic shop repository adapters, Postgres shop tables in the existing
+  idempotent migration, and `/admin/shop/status` purchase kill switch.
 
 ## Status: PvP durability track + deploy READY
 
 Lanes A1–A3, the A1 tail, and Lane B deploy are done. To go live: push to GitHub
 and apply `render.yaml` (or `memory` mode for a no-DB launch). Remaining: A4
-(treasury executor, gated), Lane B polish (wallet code-splitting, content), Lane
-C (SIWS rate-limiting).
+(treasury executor, gated), Lane B polish (content), Lane C (429 logging /
+optional Redis limiter), and launch content polish.

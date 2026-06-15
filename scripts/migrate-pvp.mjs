@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Apply the PvP Postgres schema (resources/pvp_database_schema.sql).
+// Apply the Postgres schema used by PvP and the cosmetic shop
+// (resources/pvp_database_schema.sql).
 //
 // Usage:
 //   DATABASE_URL=postgres://user:pass@host:5432/db node scripts/migrate-pvp.mjs

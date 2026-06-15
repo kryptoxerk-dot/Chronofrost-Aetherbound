@@ -47,6 +47,8 @@ const EnvSchema = z.object({
   PVP_TEST_WALLET_PREFIXES: z.string().default('test-,dev-,wallet-route-'),
   PVP_ADMIN_EXCLUDED_WALLETS: z.string().default(''),
   PVP_STORAGE_ADAPTER: z.enum(['memory', 'postgres']).default('memory'),
+  SHOP_STORAGE_ADAPTER: z.enum(['memory', 'postgres']).default('memory'),
+  SHOP_PURCHASES_ENABLED: EnvBool.default(true),
 
 
   // Dependency-free fixed-window limits for abuse-sensitive PvP/admin routes.
@@ -58,6 +60,10 @@ const EnvSchema = z.object({
   PVP_ACTION_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().min(1000).default(60000),
   PVP_ADMIN_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(60),
   PVP_ADMIN_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().min(1000).default(60000),
+  AUTH_NONCE_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(20),
+  AUTH_NONCE_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().min(1000).default(60000),
+  AUTH_VERIFY_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(20),
+  AUTH_VERIFY_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().min(1000).default(60000),
 });
 
 export const env = EnvSchema.parse(process.env);
@@ -157,6 +163,25 @@ export function getPvpRateLimitConfig() {
   };
 }
 
+export function getAuthRateLimitConfig() {
+  return {
+    nonce: {
+      name: 'auth.nonce',
+      limit: env.AUTH_NONCE_RATE_LIMIT_MAX,
+      windowMs: env.AUTH_NONCE_RATE_LIMIT_WINDOW_MS,
+    },
+    verify: {
+      name: 'auth.verify',
+      limit: env.AUTH_VERIFY_RATE_LIMIT_MAX,
+      windowMs: env.AUTH_VERIFY_RATE_LIMIT_WINDOW_MS,
+    },
+  };
+}
+
 export function getPvpStorageAdapter(): 'memory' | 'postgres' {
   return env.PVP_STORAGE_ADAPTER;
+}
+
+export function getShopStorageAdapter(): 'memory' | 'postgres' {
+  return env.SHOP_STORAGE_ADAPTER;
 }

@@ -17,6 +17,8 @@ What auto-wires:
 - `SESSION_SECRET`, `PVP_ADMIN_TOKEN`, `PVP_FINGERPRINT_SALT` are generated.
 - Client `VITE_API_BASE_URL` = server host; server `CORS_ORIGIN` = client host
   (scheme-less hosts are normalized to https in app code).
+- `SHOP_STORAGE_ADAPTER=postgres` persists cosmetic orders and inventory grants
+  in the same database as PvP storage.
 
 What to set yourself (optional, for the Solana shop): `AETHER_MINT`,
 `TREASURY_WALLET`, `TREASURY_TOKEN_ACCOUNT`. Leave unset for a guest + PvP launch.
@@ -92,6 +94,16 @@ TREASURY_WALLET=<treasury wallet>
 TREASURY_TOKEN_ACCOUNT=<treasury ATA>
 SESSION_SECRET=<long random secret>
 DATABASE_URL=<postgres url, when added>
+SHOP_STORAGE_ADAPTER=postgres
+SHOP_PURCHASES_ENABLED=true
+```
+
+Emergency cosmetic-shop rollback:
+
+```text
+Set SHOP_PURCHASES_ENABLED=false or call POST /admin/shop/status with
+{ "purchasesEnabled": false, "reason": "..." } using x-admin-token.
+The catalog, inventory reads, and guest game stay online; quote/confirm return 503.
 ```
 
 ## Mainnet launch env changes
@@ -128,6 +140,7 @@ Risk disclaimer published
 
 ```text
 Disable quote endpoint
+or set SHOP_PURCHASES_ENABLED=false / POST /admin/shop/status
 Keep game playable in guest mode
 Hide wallet shop button
 Publish status update

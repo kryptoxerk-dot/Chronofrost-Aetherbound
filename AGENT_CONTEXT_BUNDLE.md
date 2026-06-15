@@ -1,6 +1,6 @@
 # Chronofrost Agent Context Bundle
 
-Generated at 2026-06-14T09:53:12.032Z
+Generated at 2026-06-15T05:17:47.909Z
 
 
 
@@ -1052,6 +1052,63 @@ paths:
       security: []
       responses:
         '200': { description: OK }
+  /shop/items:
+    get:
+      security: []
+      summary: List active cosmetic shop items.
+      responses:
+        '200': { description: Active fixed-price cosmetic items }
+  /shop/quote:
+    post:
+      security: []
+      summary: Create a server-side cosmetic purchase order.
+      description: Returns transfer parameters for a player-signed SPL transfer. No backend token movement.
+      responses:
+        '200': { description: Purchase quote/order }
+        '400': { description: Invalid wallet, item, or config }
+        '503': { description: Solana config missing or purchases disabled }
+  /shop/confirm:
+    post:
+      security: []
+      summary: Verify a player-signed transfer and grant the cosmetic once.
+      responses:
+        '200': { description: Cosmetic granted }
+        '400': { description: Transaction verification failed }
+        '409': { description: Duplicate tx or non-pending order }
+        '410': { description: Order expired }
+  /inventory/{wallet}:
+    get:
+      security: []
+      parameters:
+        - in: path
+          name: wallet
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Cosmetic inventory grants for wallet }
+  /admin/shop/status:
+    get:
+      security: [{ AdminToken: [] }]
+      summary: Read cosmetic purchase availability.
+      responses:
+        '200': { description: Shop status }
+        '401': { description: Missing admin token }
+    post:
+      security: [{ AdminToken: [] }]
+      summary: Enable or disable cosmetic purchases without taking the game offline.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [purchasesEnabled]
+              properties:
+                purchasesEnabled: { type: boolean }
+                reason: { type: string, maxLength: 240 }
+      responses:
+        '200': { description: Updated shop status }
+        '401': { description: Missing admin token }
   /pvp/queue:
     post:
       summary: Join ranked PvP queue.
@@ -1507,6 +1564,58 @@ CREATE TABLE IF NOT EXISTS pvp_payout_transactions (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Latest anti-sybil eligibility evaluation per player per season. This is the
+-- durable target for PvpEligibilityRepository.saveEvaluation. It is an
+-- evaluation cache, not a payout authority: snapshots + payout plans remain the
+-- admin-gated source of truth for any studio-funded reward.
+CREATE TABLE IF NOT EXISTS pvp_eligibility_evaluations (
+  season_id TEXT NOT NULL,
+  player_id TEXT NOT NULL REFERENCES pvp_players(player_id),
+  status TEXT NOT NULL
+    CHECK (status IN ('eligible', 'ineligible', 'flagged_review', 'banned', 'admin_excluded')),
+  eligible BOOLEAN NOT NULL,
+  evaluation_json JSONB NOT NULL,
+  evaluated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (season_id, player_id)
+);
+
+-- Mainnet prototype cosmetic shop storage. These tables record server-created
+-- orders and verified player-signed SPL transfers only; they do not authorize
+-- backend movement of player tokens and do not represent rewards, staking, or
+-- any player-funded prize pool.
+CREATE TABLE IF NOT EXISTS shop_orders (
+  order_id UUID PRIMARY KEY,
+  buyer_wallet TEXT NOT NULL,
+  item_id TEXT NOT NULL,
+  mint TEXT NOT NULL,
+  amount_raw NUMERIC(78, 0) NOT NULL,
+  decimals INTEGER NOT NULL,
+  treasury_token_account TEXT NOT NULL,
+  nonce TEXT NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('pending', 'confirming', 'confirmed', 'expired', 'failed')),
+  tx_signature TEXT UNIQUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  confirmed_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_shop_orders_buyer_wallet ON shop_orders(buyer_wallet);
+CREATE INDEX IF NOT EXISTS idx_shop_orders_status_expires ON shop_orders(status, expires_at);
+
+CREATE TABLE IF NOT EXISTS shop_inventory_grants (
+  id BIGSERIAL PRIMARY KEY,
+  wallet TEXT NOT NULL,
+  item_id TEXT NOT NULL,
+  source TEXT NOT NULL CHECK (source IN ('aether')),
+  order_id UUID NOT NULL REFERENCES shop_orders(order_id),
+  tx_signature TEXT NOT NULL UNIQUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (order_id),
+  UNIQUE (wallet, item_id, order_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_shop_inventory_wallet ON shop_inventory_grants(wallet);
 ```
 
 
@@ -1575,7 +1684,8 @@ import {
   type DuelAction,
   type DuelState,
 } from './duelEngine.js';
-import { ladder, type MatchRecord } from './ladder.js';
+import { ladder, type MatchRecord, type RankedPlayer } from './ladder.js';
+import { persistCompletedMatch } from './pvpPersistence.js';
 
 export type PvpPlayerRef = {
   id: string;
@@ -1712,6 +1822,14 @@ function completeMatch(match: LiveMatch, reason: 'combat' | 'forfeit' | 'timeout
   match.ratingDelta = { ...record.ratingDelta };
   activeMatchByPlayer.delete(match.p1.id);
   activeMatchByPlayer.delete(match.p2.id);
+
+  // Durable write-through (fire-and-forget). The ladder already updated live
+  // ratings above; this persists the authoritative post-match state.
+  const persistPlayers = [ladder.getPlayer(match.p1.id), ladder.getPlayer(match.p2.id)].filter(
+    (p): p is RankedPlayer => Boolean(p),
+  );
+  persistCompletedMatch(record, persistPlayers);
+
   return record;
 }
 
@@ -2462,7 +2580,25 @@ export type PayoutApprovalRequest = {
   executionTxSignature?: string;
 };
 
-const requests = new Map<string, PayoutApprovalRequest>();
+/**
+ * Durable-friendly contract for the payout approval workflow.
+ *
+ * Approval is deliberately separate from planning (PayoutPlan generation) and
+ * from execution (signed treasury transfer). This repository only records the
+ * review lifecycle and the execution signature; it never moves funds. The
+ * in-memory adapter backs local dev/tests; the Postgres adapter persists to
+ * pvp_payout_plans so approvals survive restarts and double execution is
+ * blocked by a unique execution_tx_signature.
+ */
+export interface PayoutApprovalRepository {
+  create(payoutPlan: PayoutPlan, createdBy: string): Promise<PayoutApprovalRequest>;
+  get(requestId: string): Promise<PayoutApprovalRequest | null>;
+  list(seasonId?: string): Promise<PayoutApprovalRequest[]>;
+  approve(requestId: string, approvedBy: string): Promise<PayoutApprovalRequest>;
+  reject(requestId: string, rejectedBy: string, reason: string): Promise<PayoutApprovalRequest>;
+  cancel(requestId: string, cancelledBy: string, reason: string): Promise<PayoutApprovalRequest>;
+  attachExecutionSignature(requestId: string, txSignature: string, actor: string): Promise<PayoutApprovalRequest>;
+}
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -2482,92 +2618,102 @@ function assertPending(request: PayoutApprovalRequest): void {
   if (request.status !== 'pending_review') throw new Error(`payout request is ${request.status}`);
 }
 
-export const payoutApprovals = {
-  create(payoutPlan: PayoutPlan, createdBy: string): PayoutApprovalRequest {
-    if (payoutPlan.fundedBy !== 'studio-treasury') {
-      throw new Error('only studio-funded payout plans can be submitted for approval');
-    }
-    const now = nowIso();
-    const request: PayoutApprovalRequest = {
-      requestId: crypto.randomUUID(),
-      seasonId: payoutPlan.seasonId,
-      status: 'pending_review',
-      payoutPlan: {
-        ...payoutPlan,
-        payouts: payoutPlan.payouts.map((p) => ({ ...p })),
-      },
-      createdAt: now,
-      createdBy,
-      updatedAt: now,
-    };
-    requests.set(request.requestId, request);
-    return cloneRequest(request);
-  },
+export function createMemoryPayoutApprovalRepository(): PayoutApprovalRepository & { _reset(): void } {
+  const requests = new Map<string, PayoutApprovalRequest>();
 
-  get(requestId: string): PayoutApprovalRequest | null {
-    const request = requests.get(requestId);
-    return request ? cloneRequest(request) : null;
-  },
+  return {
+    async create(payoutPlan: PayoutPlan, createdBy: string): Promise<PayoutApprovalRequest> {
+      if (payoutPlan.fundedBy !== 'studio-treasury') {
+        throw new Error('only studio-funded payout plans can be submitted for approval');
+      }
+      const now = nowIso();
+      const request: PayoutApprovalRequest = {
+        requestId: crypto.randomUUID(),
+        seasonId: payoutPlan.seasonId,
+        status: 'pending_review',
+        payoutPlan: {
+          ...payoutPlan,
+          payouts: payoutPlan.payouts.map((p) => ({ ...p })),
+        },
+        createdAt: now,
+        createdBy,
+        updatedAt: now,
+      };
+      requests.set(request.requestId, request);
+      return cloneRequest(request);
+    },
 
-  list(seasonId?: string): PayoutApprovalRequest[] {
-    return [...requests.values()]
-      .filter((request) => !seasonId || request.seasonId === seasonId)
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-      .map(cloneRequest);
-  },
+    async get(requestId: string): Promise<PayoutApprovalRequest | null> {
+      const request = requests.get(requestId);
+      return request ? cloneRequest(request) : null;
+    },
 
-  approve(requestId: string, approvedBy: string): PayoutApprovalRequest {
-    const request = requests.get(requestId);
-    if (!request) throw new Error('payout request not found');
-    assertPending(request);
-    request.status = 'approved';
-    request.approvedAt = nowIso();
-    request.approvedBy = approvedBy;
-    request.updatedAt = request.approvedAt;
-    return cloneRequest(request);
-  },
+    async list(seasonId?: string): Promise<PayoutApprovalRequest[]> {
+      return [...requests.values()]
+        .filter((request) => !seasonId || request.seasonId === seasonId)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+        .map(cloneRequest);
+    },
 
-  reject(requestId: string, rejectedBy: string, reason: string): PayoutApprovalRequest {
-    const request = requests.get(requestId);
-    if (!request) throw new Error('payout request not found');
-    assertPending(request);
-    request.status = 'rejected';
-    request.rejectedAt = nowIso();
-    request.rejectedBy = rejectedBy;
-    request.rejectionReason = reason;
-    request.updatedAt = request.rejectedAt;
-    return cloneRequest(request);
-  },
+    async approve(requestId: string, approvedBy: string): Promise<PayoutApprovalRequest> {
+      const request = requests.get(requestId);
+      if (!request) throw new Error('payout request not found');
+      assertPending(request);
+      request.status = 'approved';
+      request.approvedAt = nowIso();
+      request.approvedBy = approvedBy;
+      request.updatedAt = request.approvedAt;
+      return cloneRequest(request);
+    },
 
-  cancel(requestId: string, cancelledBy: string, reason: string): PayoutApprovalRequest {
-    const request = requests.get(requestId);
-    if (!request) throw new Error('payout request not found');
-    assertPending(request);
-    request.status = 'cancelled';
-    request.cancelledAt = nowIso();
-    request.cancelledBy = cancelledBy;
-    request.cancellationReason = reason;
-    request.updatedAt = request.cancelledAt;
-    return cloneRequest(request);
-  },
+    async reject(requestId: string, rejectedBy: string, reason: string): Promise<PayoutApprovalRequest> {
+      const request = requests.get(requestId);
+      if (!request) throw new Error('payout request not found');
+      assertPending(request);
+      request.status = 'rejected';
+      request.rejectedAt = nowIso();
+      request.rejectedBy = rejectedBy;
+      request.rejectionReason = reason;
+      request.updatedAt = request.rejectedAt;
+      return cloneRequest(request);
+    },
 
-  attachExecutionSignature(requestId: string, txSignature: string, actor: string): PayoutApprovalRequest {
-    const request = requests.get(requestId);
-    if (!request) throw new Error('payout request not found');
-    if (request.status !== 'approved') throw new Error('payout request must be approved before execution');
-    if (request.executionTxSignature) throw new Error('payout request already has execution signature');
-    request.executionTxSignature = txSignature;
-    request.updatedAt = nowIso();
-    // actor is retained for future durable audit adapters. In-memory shape keeps
-    // the request compact while docs/schema define the durable transaction table.
-    void actor;
-    return cloneRequest(request);
-  },
+    async cancel(requestId: string, cancelledBy: string, reason: string): Promise<PayoutApprovalRequest> {
+      const request = requests.get(requestId);
+      if (!request) throw new Error('payout request not found');
+      assertPending(request);
+      request.status = 'cancelled';
+      request.cancelledAt = nowIso();
+      request.cancelledBy = cancelledBy;
+      request.cancellationReason = reason;
+      request.updatedAt = request.cancelledAt;
+      return cloneRequest(request);
+    },
 
-  _reset(): void {
-    requests.clear();
-  },
-};
+    async attachExecutionSignature(requestId: string, txSignature: string, actor: string): Promise<PayoutApprovalRequest> {
+      const request = requests.get(requestId);
+      if (!request) throw new Error('payout request not found');
+      if (request.status !== 'approved') throw new Error('payout request must be approved before execution');
+      if (request.executionTxSignature) throw new Error('payout request already has execution signature');
+      request.executionTxSignature = txSignature;
+      request.updatedAt = nowIso();
+      // actor retained for audit; the Postgres adapter records it durably.
+      void actor;
+      return cloneRequest(request);
+    },
+
+    _reset(): void {
+      requests.clear();
+    },
+  };
+}
+
+/**
+ * Process-wide in-memory payout approvals (local dev/tests + memory storage
+ * mode). In postgres storage mode, routes use the durable adapter via
+ * pvpStorage instead. Exposed directly so unit tests can drive it.
+ */
+export const payoutApprovals = createMemoryPayoutApprovalRepository();
 ```
 
 

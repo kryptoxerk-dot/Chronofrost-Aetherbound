@@ -1,10 +1,12 @@
 import crypto from 'node:crypto';
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { PublicKey } from '@solana/web3.js';
 import nacl from 'tweetnacl';
 import bs58 from 'bs58';
 import { store } from '../services/inMemoryStore.js';
+import { getAuthRateLimitConfig } from '../config/env.js';
+import { createFixedWindowRateLimiter, rateLimitKey, type FixedWindowRateLimiter, type RateLimitResult } from '../security/rateLimit.js';
 
 const SignatureArray = z.array(z.number().int().min(0).max(255)).length(64);
 const NonceBody = z.object({ wallet: z.string().min(32) });
@@ -14,8 +16,35 @@ const VerifyBody = z.object({
   signature: z.union([SignatureArray, z.string().min(32).max(128)]),
 });
 
+const authRateLimits = getAuthRateLimitConfig();
+const nonceLimiter = createFixedWindowRateLimiter(authRateLimits.nonce);
+const verifyLimiter = createFixedWindowRateLimiter(authRateLimits.verify);
+
+function sendRateLimitHeaders(reply: FastifyReply, result: RateLimitResult): void {
+  reply.header('x-ratelimit-name', result.name);
+  reply.header('x-ratelimit-limit', result.limit.toString());
+  reply.header('x-ratelimit-remaining', result.remaining.toString());
+  reply.header('x-ratelimit-reset', result.resetAt);
+}
+
+function enforceRateLimit(
+  reply: FastifyReply,
+  limiter: FixedWindowRateLimiter,
+  key: string,
+): boolean {
+  const result = limiter.consume(key);
+  sendRateLimitHeaders(reply, result);
+  if (!result.allowed) {
+    reply.code(429).send({ error: 'rate limit exceeded', retryAfterMs: result.retryAfterMs });
+    return false;
+  }
+  return true;
+}
+
 export async function authRoutes(app: FastifyInstance) {
   app.post('/auth/nonce', async (request, reply) => {
+    if (!enforceRateLimit(reply, nonceLimiter, rateLimitKey('ip', request.ip))) return;
+
     const body = NonceBody.safeParse(request.body);
     if (!body.success) return reply.code(400).send({ error: 'invalid body' });
 
@@ -38,6 +67,8 @@ export async function authRoutes(app: FastifyInstance) {
   });
 
   app.post('/auth/verify', async (request, reply) => {
+    if (!enforceRateLimit(reply, verifyLimiter, rateLimitKey('ip', request.ip))) return;
+
     const body = VerifyBody.safeParse(request.body);
     if (!body.success) return reply.code(400).send({ error: 'invalid body' });
 

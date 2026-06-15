@@ -201,3 +201,40 @@ CREATE TABLE IF NOT EXISTS pvp_eligibility_evaluations (
   evaluated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (season_id, player_id)
 );
+
+-- Mainnet prototype cosmetic shop storage. These tables record server-created
+-- orders and verified player-signed SPL transfers only; they do not authorize
+-- backend movement of player tokens and do not represent rewards, staking, or
+-- any player-funded prize pool.
+CREATE TABLE IF NOT EXISTS shop_orders (
+  order_id UUID PRIMARY KEY,
+  buyer_wallet TEXT NOT NULL,
+  item_id TEXT NOT NULL,
+  mint TEXT NOT NULL,
+  amount_raw NUMERIC(78, 0) NOT NULL,
+  decimals INTEGER NOT NULL,
+  treasury_token_account TEXT NOT NULL,
+  nonce TEXT NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  status TEXT NOT NULL CHECK (status IN ('pending', 'confirming', 'confirmed', 'expired', 'failed')),
+  tx_signature TEXT UNIQUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  confirmed_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_shop_orders_buyer_wallet ON shop_orders(buyer_wallet);
+CREATE INDEX IF NOT EXISTS idx_shop_orders_status_expires ON shop_orders(status, expires_at);
+
+CREATE TABLE IF NOT EXISTS shop_inventory_grants (
+  id BIGSERIAL PRIMARY KEY,
+  wallet TEXT NOT NULL,
+  item_id TEXT NOT NULL,
+  source TEXT NOT NULL CHECK (source IN ('aether')),
+  order_id UUID NOT NULL REFERENCES shop_orders(order_id),
+  tx_signature TEXT NOT NULL UNIQUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (order_id),
+  UNIQUE (wallet, item_id, order_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_shop_inventory_wallet ON shop_inventory_grants(wallet);
