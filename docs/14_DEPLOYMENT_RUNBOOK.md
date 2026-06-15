@@ -57,12 +57,18 @@ pnpm install
 pnpm typecheck
 pnpm build
 pnpm smoke:launch
+LAUNCH_TARGET=devnet node scripts/launch-readiness.mjs
 ```
 
 `pnpm smoke:launch` starts the built API locally in memory mode with purchases
 disabled, checks `/health`, `/shop/items`, `/shop/quote` paused behavior,
 `/admin/shop/status`, `/inventory/:wallet`, and confirms the client `dist`
 assets exist. It does not require Postgres, Solana config, or wallet access.
+
+`launch-readiness.mjs` statically checks environment gates. Run it with
+`LAUNCH_TARGET=mainnet` before enabling public mainnet purchases; it rejects
+placeholder secrets, missing mint/treasury config, non-durable shop storage,
+client/server Solana cluster mismatches, and non-zero PvP prize pools.
 
 ## Client deployment
 
@@ -131,6 +137,7 @@ Client deployed
 Server deployed
 Health endpoint live
 Local smoke passed (`pnpm smoke:launch`)
+Launch readiness passed for target environment
 CORS correct
 RPC stable
 Mint address configured

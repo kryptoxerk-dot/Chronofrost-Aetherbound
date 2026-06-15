@@ -22,6 +22,9 @@ TREASURY_WALLET=<treasury wallet public key>
 TREASURY_TOKEN_ACCOUNT=<treasury ATA>
 SESSION_SECRET=<random secret>
 DATABASE_URL=<postgres later>
+PVP_STORAGE_ADAPTER=memory
+SHOP_STORAGE_ADAPTER=memory
+SHOP_PURCHASES_ENABLED=true
 ```
 
 ## Never expose
@@ -58,12 +61,29 @@ Privacy rule: if fingerprinting is enabled, the server stores salted hashes only
 
 | Variable | Default | Purpose |
 |---|---:|---|
-| `PVP_STORAGE_ADAPTER` | `memory` | Future switch for `memory` vs `postgres` PvP repositories. Postgres is scaffolded but not implemented yet. |
+| `PVP_STORAGE_ADAPTER` | `memory` | Switch for `memory` vs `postgres` PvP repositories. Use `postgres` for durable no-prize PvP beta. |
+| `SHOP_STORAGE_ADAPTER` | `memory` | Switch for `memory` vs `postgres` cosmetic order/inventory storage. Use `postgres` before public mainnet purchases. |
+| `SHOP_PURCHASES_ENABLED` | `true` | Operator kill switch for `$AETHER` quote/confirm. Catalog and inventory reads stay online when false. |
 | `PVP_QUEUE_RATE_LIMIT_MAX` | `12` | Max queue requests per wallet per window. |
 | `PVP_QUEUE_RATE_LIMIT_WINDOW_MS` | `60000` | Queue rate-limit window. |
 | `PVP_ACTION_RATE_LIMIT_MAX` | `60` | Max action/forfeit/timeout requests per wallet per window. |
 | `PVP_ACTION_RATE_LIMIT_WINDOW_MS` | `60000` | PvP action rate-limit window. |
 | `PVP_ADMIN_RATE_LIMIT_MAX` | `60` | Max admin endpoint requests per admin key/IP per window. |
 | `PVP_ADMIN_RATE_LIMIT_WINDOW_MS` | `60000` | Admin rate-limit window. |
+| `AUTH_NONCE_RATE_LIMIT_MAX` | `20` | Max SIWS nonce requests per IP per window. |
+| `AUTH_NONCE_RATE_LIMIT_WINDOW_MS` | `60000` | SIWS nonce rate-limit window. |
+| `AUTH_VERIFY_RATE_LIMIT_MAX` | `20` | Max SIWS verify requests per IP per window. |
+| `AUTH_VERIFY_RATE_LIMIT_WINDOW_MS` | `60000` | SIWS verify rate-limit window. |
+
+## Launch readiness commands
+
+```bash
+LAUNCH_TARGET=devnet node scripts/launch-readiness.mjs
+LAUNCH_TARGET=mainnet node scripts/launch-readiness.mjs
+```
+
+Mainnet readiness requires durable shop storage, non-placeholder secrets,
+official mint/treasury config, matching client/server cluster values, and
+`PVP_PRIZE_POOL_RAW=0` for the prototype launch.
 
 Production should also use edge/CDN limits and durable rate-limit storage if the API runs on more than one server instance.
