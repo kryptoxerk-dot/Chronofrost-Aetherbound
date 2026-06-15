@@ -12,6 +12,7 @@ export const HOW_TO_PLAY_LINES: string[] = [
   'then enter the DUNGEON.',
   'Battle: [A] Attack  [F] Chronofreeze  [D] Defend',
   'Freeze costs MP and delays the foe.',
+  'Defend braces AND refuels MP.',
   '[M] toggles sound.  Esc backs out.',
   'No wallet needed to play — cosmetics only.',
 ];

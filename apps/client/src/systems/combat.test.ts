@@ -1,11 +1,14 @@
 import { describe, it, expect } from 'vitest';
+import { COMBAT_CONFIG } from '../config/balance';
 import {
   createBattle,
   heroAct,
   enemyAct,
+  canFreeze,
   simulateBattle,
   attackPolicy,
   freezePolicy,
+  defendPolicy,
 } from './combat';
 
 describe('Chronofrost combat', () => {
@@ -33,6 +36,27 @@ describe('Chronofrost combat', () => {
 
     expect(undefendedLoss).toBeGreaterThan(0);
     expect(defendedLoss).toBeLessThan(undefendedLoss);
+  });
+
+  it('Defending gathers aether — restoring MP a plain turn would not', () => {
+    const guarded = createBattle('chrono_warden');
+    guarded.hero.mp = 1; // below the Chronofreeze cost
+    heroAct(guarded, 'defend');
+    // turn regen (+1) plus the defend bonus refuels enough to Chronofreeze next.
+    expect(guarded.hero.mp).toBe(1 + COMBAT_CONFIG.mpRegenPerTurn + COMBAT_CONFIG.defend.mpBonus);
+    expect(canFreeze(guarded.hero)).toBe(true);
+
+    const attacked = createBattle('chrono_warden');
+    attacked.hero.mp = 1;
+    heroAct(attacked, 'attack');
+    expect(attacked.hero.mp).toBe(1 + COMBAT_CONFIG.mpRegenPerTurn);
+    expect(canFreeze(attacked.hero)).toBe(false);
+  });
+
+  it('Defending alone cannot win — it deals no damage', () => {
+    const { winner, state } = simulateBattle('frost_slime', defendPolicy);
+    expect(winner).toBe('enemy');
+    expect(state.enemy.hp).toBe(state.enemy.maxHp);
   });
 
   it('An attack-only strategy loses to the boss', () => {

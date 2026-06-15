@@ -67,9 +67,12 @@ export const COMBAT_CONFIG = {
     // Added to the target's current wait, in timeline units.
     delay: 22,
   },
-  // Defending halves the next incoming hit and is consumed when hit.
+  // Defending halves the next incoming hit (consumed when hit) AND draws in
+  // aether, restoring MP. This makes Defend a real tempo/resource move — brace
+  // against a big blow while refueling Chronofreeze — instead of a dead turn.
   defend: {
     damageMultiplier: 0.5,
+    mpBonus: 2,
   },
   // MP regained at the start of every hero action.
   mpRegenPerTurn: 1,

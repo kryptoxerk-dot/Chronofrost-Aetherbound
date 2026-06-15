@@ -151,7 +151,8 @@ export function heroAct(state: BattleState, action: CombatAction): void {
     state.log.push(`Chronofreeze hits ${enemy.name} for ${dmg} and stalls its timeline.`);
   } else if (action === 'defend') {
     hero.defending = true;
-    state.log.push(`${hero.name} braces for the next blow.`);
+    hero.mp = Math.min(hero.maxMp, hero.mp + COMBAT_CONFIG.defend.mpBonus);
+    state.log.push(`${hero.name} braces and gathers aether.`);
   } else {
     // 'attack', or 'freeze' without enough MP, falls back to a physical strike.
     dealPhysical(state, hero, enemy);
@@ -173,6 +174,7 @@ export type HeroPolicy = (state: BattleState) => CombatAction;
 
 export const attackPolicy: HeroPolicy = () => 'attack';
 export const freezePolicy: HeroPolicy = (state) => (canFreeze(state.hero) ? 'freeze' : 'attack');
+export const defendPolicy: HeroPolicy = () => 'defend';
 
 /** Run a full headless battle under a fixed hero policy. Used by tests. */
 export function simulateBattle(

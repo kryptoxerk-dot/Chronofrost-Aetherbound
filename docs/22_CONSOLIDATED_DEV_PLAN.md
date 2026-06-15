@@ -171,3 +171,6 @@ node scripts/agent-context-pack.mjs
 - 2026-06-15 - Audio pass + first-run onboarding complete (procedural SFX, [M]
   mute toggle, How-to-Play overlay). See
   `VERIFICATION_REPORT_AUDIO_AND_ONBOARDING.md`.
+- 2026-06-15 - Combat balance pass: Defend reworked into a tempo/resource move
+  (halves the next hit AND refuels MP), completing the Attack/Freeze/Defend loop.
+  See `VERIFICATION_REPORT_COMBAT_BALANCE.md`.
