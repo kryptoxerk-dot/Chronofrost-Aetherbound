@@ -183,3 +183,6 @@ node scripts/agent-context-pack.mjs
   error + JSON 404 handlers, testable buildServer() factory, body limit +
   trustProxy, and fail-fast production-secret validation. See
   `VERIFICATION_REPORT_SERVER_HARDENING.md`.
+- 2026-06-15 - Repo + build production polish: MIT LICENSE, public README
+  (badges/quickstart/deploy), Vite vendor chunk split (app entry ~37 KB; Phaser
+  cache-stable; Solana lazy), CI pnpm cache + cancel-in-progress, Dependabot.
