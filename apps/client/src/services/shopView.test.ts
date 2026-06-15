@@ -13,6 +13,7 @@ function state(overrides: Partial<GameState> = {}): GameState {
     questAccepted: false,
     questComplete: false,
     bossDefeated: false,
+    launchNoticeAccepted: false,
     walletAddress: null,
     aetherBalanceUi: null,
     ...overrides,

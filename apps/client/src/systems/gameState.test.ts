@@ -7,6 +7,7 @@ import {
   healHero,
   resetGameState,
   setHeroVitals,
+  updateGameState,
   xpForNextLevel,
 } from './gameState';
 
@@ -20,6 +21,7 @@ describe('game state (off-chain, wallet-free)', () => {
     const state = getGameState();
 
     expect(state.walletAddress).toBeNull();
+    expect(state.launchNoticeAccepted).toBe(false);
     expect(state.gold).toBe(40);
     expect(result.leveledUp).toBe(true);
     expect(state.level).toBe(2);
@@ -51,5 +53,10 @@ describe('game state (off-chain, wallet-free)', () => {
 
     healHero(999, 999, 32, 10);
     expect(getGameState()).toMatchObject({ hp: 32, mp: 10 });
+  });
+
+  it('persists the launch notice acknowledgement flag', () => {
+    expect(getGameState().launchNoticeAccepted).toBe(false);
+    expect(updateGameState({ launchNoticeAccepted: true }).launchNoticeAccepted).toBe(true);
   });
 });

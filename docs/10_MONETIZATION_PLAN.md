@@ -104,4 +104,6 @@ Do not sell power.
 Do not sell promised future profits.
 Do not accept funds for features you cannot build.
 Keep scopes small and public.
+Show players before gameplay that wallet use is optional, $AETHER is cosmetic
+identity only, and there are no staking/betting/token reward mechanics.
 ```

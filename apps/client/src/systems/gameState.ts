@@ -12,6 +12,7 @@ export interface GameState {
   questAccepted: boolean;
   questComplete: boolean;
   bossDefeated: boolean;
+  launchNoticeAccepted: boolean;
   walletAddress: string | null;
   aetherBalanceUi: string | null;
 }
@@ -34,6 +35,7 @@ function defaultState(): GameState {
     questAccepted: false,
     questComplete: false,
     bossDefeated: false,
+    launchNoticeAccepted: false,
     walletAddress: null,
     aetherBalanceUi: null,
   };

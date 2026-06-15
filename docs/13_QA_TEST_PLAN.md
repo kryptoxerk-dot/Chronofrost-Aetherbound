@@ -4,6 +4,7 @@
 
 ```text
 Open client
+Confirm launch notice says wallet optional, cosmetics only, and no staking/betting/token rewards
 Move around town
 Interact with quest NPC
 Enter dungeon
